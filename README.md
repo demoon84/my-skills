@@ -49,6 +49,13 @@ Use a different branch or tag:
 python3 scripts/skill_repo.py install-github demoon84/my-skills workloop --ref main
 ```
 
+Run the helper script directly from GitHub without cloning first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/demoon84/my-skills/main/scripts/skill_repo.py | python3 - list-github demoon84/my-skills
+curl -fsSL https://raw.githubusercontent.com/demoon84/my-skills/main/scripts/skill_repo.py | python3 - install-github demoon84/my-skills workloop
+```
+
 ## Repository commands
 
 List skills:

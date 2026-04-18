@@ -54,6 +54,15 @@ def fail(message: str) -> None:
     raise SystemExit(1)
 
 
+def ensure_local_repo_available(command_name: str) -> None:
+    if (ROOT / "skills").exists():
+        return
+    fail(
+        f"'{command_name}' requires a local checkout of the skills repository. "
+        "Use 'list-github' or 'install-github' for standalone GitHub-based usage."
+    )
+
+
 def normalize_name(value: str) -> str:
     normalized = value.strip().lower().replace("_", "-").replace(" ", "-")
     normalized = re.sub(r"-{2,}", "-", normalized)
@@ -211,6 +220,7 @@ def ensure_skill_dir(name: str) -> Path:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
+    ensure_local_repo_available("init")
     name = normalize_name(args.name)
     description = args.description.strip()
     if not description:
@@ -296,6 +306,7 @@ def select_skills(skills: list[Skill], names: list[str], all_skills: bool) -> li
 
 
 def cmd_install(args: argparse.Namespace) -> int:
+    ensure_local_repo_available("install")
     if not args.all and not args.skills:
         fail("provide one or more skills, or use --all")
 
@@ -384,6 +395,7 @@ def cmd_list_github(args: argparse.Namespace) -> int:
 
 
 def cmd_list(args: argparse.Namespace) -> int:
+    ensure_local_repo_available("list")
     skills = load_skills()
     installed_names = installed_skill_names(DEFAULT_DEST)
 
@@ -403,12 +415,14 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_refresh_catalog(_: argparse.Namespace) -> int:
+    ensure_local_repo_available("refresh-catalog")
     skills = write_catalog()
     print(f"catalog refreshed with {len(skills)} skill(s)")
     return 0
 
 
 def cmd_validate(_: argparse.Namespace) -> int:
+    ensure_local_repo_available("validate")
     errors: list[str] = []
 
     if not SKILLS_DIR.exists():
