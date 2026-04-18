@@ -24,6 +24,12 @@ python3 scripts/skill_repo.py install --all --mode link
 
 ## Install directly from GitHub
 
+List what is available from the published repo:
+
+```bash
+python3 scripts/skill_repo.py list-github demoon84/my-skills
+```
+
 If you already have this repository checked out somewhere, you can use its helper script to install a copy from GitHub:
 
 ```bash

@@ -34,11 +34,15 @@ class Skill:
     short_description: str | None = None
     default_prompt: str | None = None
 
-    def to_catalog_dict(self) -> dict[str, object]:
+    def to_catalog_dict(self, *, base: Path = ROOT) -> dict[str, object]:
+        try:
+            path_value = str(self.path.relative_to(base))
+        except ValueError:
+            path_value = str(self.path)
         return {
             "name": self.name,
             "description": self.description,
-            "path": str(self.path.relative_to(ROOT)),
+            "path": path_value,
             "display_name": self.display_name,
             "short_description": self.short_description,
             "default_prompt": self.default_prompt,
@@ -163,6 +167,16 @@ def load_skills_from_root(root: Path) -> list[Skill]:
             continue
         skills.append(load_skill(skill_dir))
     return skills
+
+
+def installed_skill_names(dest_root: Path) -> set[str]:
+    if not dest_root.exists():
+        return set()
+    return {
+        path.name
+        for path in dest_root.glob("*")
+        if path.is_dir() or path.is_symlink()
+    }
 
 
 def build_catalog(skills: list[Skill]) -> dict[str, object]:
@@ -342,13 +356,36 @@ def cmd_install_github(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_list_github(args: argparse.Namespace) -> int:
+    repo = normalize_repo(args.repo)
+    dest = Path(args.dest).expanduser()
+    extracted_root = download_and_extract_repo(repo, args.ref)
+
+    try:
+        remote_skills = load_skills_from_root(extracted_root)
+        installed_names = installed_skill_names(dest)
+
+        if args.json:
+            payload = []
+            for skill in remote_skills:
+                item = skill.to_catalog_dict(base=extracted_root)
+                item["installed"] = skill.name in installed_names
+                payload.append(item)
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return 0
+
+        print(f"Skills from {repo}@{args.ref}:")
+        for skill in remote_skills:
+            suffix = " (installed)" if skill.name in installed_names else ""
+            print(f"{skill.name}{suffix}: {skill.description}")
+        return 0
+    finally:
+        shutil.rmtree(extracted_root.parent, ignore_errors=True)
+
+
 def cmd_list(args: argparse.Namespace) -> int:
     skills = load_skills()
-    installed_names = {
-        path.name
-        for path in DEFAULT_DEST.glob("*")
-        if path.is_dir() or path.is_symlink()
-    } if DEFAULT_DEST.exists() else set()
+    installed_names = installed_skill_names(DEFAULT_DEST)
 
     if args.json:
         payload = []
@@ -495,6 +532,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replace an existing destination if needed",
     )
     install_github_parser.set_defaults(func=cmd_install_github)
+
+    list_github_parser = subparsers.add_parser(
+        "list-github",
+        help="List skills available in a GitHub repository",
+    )
+    list_github_parser.add_argument("repo", help="GitHub repo like owner/name or a GitHub URL")
+    list_github_parser.add_argument(
+        "--ref",
+        default="main",
+        help="Git ref to download from GitHub (default: main)",
+    )
+    list_github_parser.add_argument(
+        "--dest",
+        default=str(DEFAULT_DEST),
+        help="Installed skills directory used to annotate installed items",
+    )
+    list_github_parser.add_argument("--json", action="store_true", help="Print machine-readable output")
+    list_github_parser.set_defaults(func=cmd_list_github)
 
     refresh_parser = subparsers.add_parser(
         "refresh-catalog",
