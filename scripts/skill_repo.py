@@ -371,6 +371,70 @@ def cmd_refresh_catalog(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate(_: argparse.Namespace) -> int:
+    errors: list[str] = []
+
+    if not SKILLS_DIR.exists():
+        errors.append("skills directory is missing")
+    else:
+        skill_dirs = sorted(path for path in SKILLS_DIR.iterdir() if path.is_dir())
+        if not skill_dirs:
+            errors.append("skills directory is empty")
+
+        for skill_dir in skill_dirs:
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                errors.append(f"{skill_dir.relative_to(ROOT)} is missing SKILL.md")
+                continue
+
+            metadata = parse_frontmatter(skill_md)
+            expected_name = skill_dir.name
+            actual_name = metadata.get("name", "")
+            description = metadata.get("description", "")
+
+            if actual_name != expected_name:
+                errors.append(
+                    f"{skill_md.relative_to(ROOT)} has name '{actual_name}' but folder is '{expected_name}'"
+                )
+            if not description:
+                errors.append(f"{skill_md.relative_to(ROOT)} is missing a description")
+
+            openai_yaml = skill_dir / "agents" / "openai.yaml"
+            if openai_yaml.exists():
+                interface = parse_openai_yaml(openai_yaml)
+                for key in ("display_name", "short_description", "default_prompt"):
+                    if not interface.get(key):
+                        errors.append(f"{openai_yaml.relative_to(ROOT)} is missing interface.{key}")
+
+    current_skills = load_skills() if SKILLS_DIR.exists() else []
+    expected_catalog = build_catalog(current_skills)
+
+    if not CATALOG_PATH.exists():
+        errors.append("catalog.json is missing; run refresh-catalog")
+    else:
+        actual_catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        comparable_actual = {
+            "version": actual_catalog.get("version"),
+            "skills_dir": actual_catalog.get("skills_dir"),
+            "skills": actual_catalog.get("skills"),
+        }
+        comparable_expected = {
+            "version": expected_catalog.get("version"),
+            "skills_dir": expected_catalog.get("skills_dir"),
+            "skills": expected_catalog.get("skills"),
+        }
+        if comparable_actual != comparable_expected:
+            errors.append("catalog.json is stale; run refresh-catalog")
+
+    if errors:
+        for error in errors:
+            print(f"error: {error}", file=sys.stderr)
+        return 1
+
+    print(f"validated {len(current_skills)} skill(s)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Manage repo-local Codex skills.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -437,6 +501,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Regenerate catalog.json from the skills directory",
     )
     refresh_parser.set_defaults(func=cmd_refresh_catalog)
+
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate skill metadata, agent metadata, and catalog.json",
+    )
+    validate_parser.set_defaults(func=cmd_validate)
 
     return parser
 

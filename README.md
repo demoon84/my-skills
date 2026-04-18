@@ -62,3 +62,9 @@ Refresh the generated catalog:
 ```bash
 python3 scripts/skill_repo.py refresh-catalog
 ```
+
+Validate the repository metadata:
+
+```bash
+python3 scripts/skill_repo.py validate
+```
