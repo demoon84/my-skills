@@ -1,0 +1,4 @@
+interface:
+  display_name: "workloop"
+  short_description: "Create a same-thread 1-minute coding loop."
+  default_prompt: "Use $workloop to create a 1-minute same-thread coding heartbeat that re-reads planning files, advances the next step, verifies changes, and posts concise status."

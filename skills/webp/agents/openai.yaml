@@ -1,0 +1,4 @@
+interface:
+  display_name: "webp"
+  short_description: "Run webp-maker to create static or animated WebP assets."
+  default_prompt: "Use $webp to run demoon84/webp-maker for WebP conversion, animated WebP generation, or full pipeline processing."
