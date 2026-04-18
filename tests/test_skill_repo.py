@@ -105,6 +105,34 @@ class SkillRepoTestCase(unittest.TestCase):
             self.assertEqual(result, 1)
             self.assertIn("catalog.json is stale", stderr.getvalue())
 
+    def test_uninstall_removes_installed_skill_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as dest_dir:
+            installed = Path(dest_dir) / "alpha-skill"
+            installed.mkdir()
+            (installed / "SKILL.md").write_text("stub", encoding="utf-8")
+            args = SimpleNamespace(
+                skills=["alpha-skill"],
+                dest=dest_dir,
+                missing_ok=False,
+            )
+
+            result = skill_repo.cmd_uninstall(args)
+
+            self.assertEqual(result, 0)
+            self.assertFalse(installed.exists())
+
+    def test_uninstall_missing_skill_can_be_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as dest_dir:
+            args = SimpleNamespace(
+                skills=["alpha-skill"],
+                dest=dest_dir,
+                missing_ok=True,
+            )
+
+            result = skill_repo.cmd_uninstall(args)
+
+            self.assertEqual(result, 0)
+
     def test_install_github_installs_selected_skill(self) -> None:
         temp_root = Path(tempfile.mkdtemp(prefix="skill-remote-"))
         self._patch_stack.callback(lambda: shutil.rmtree(temp_root, ignore_errors=True))

@@ -268,6 +268,18 @@ def remove_existing_target(target: Path) -> None:
         return
 
 
+def uninstall_one(name: str, dest_root: Path, missing_ok: bool) -> None:
+    target = dest_root / normalize_name(name)
+    if not target.exists() and not target.is_symlink():
+        if missing_ok:
+            print(f"{target.name}: already absent")
+            return
+        fail(f"{target} is not installed")
+
+    remove_existing_target(target)
+    print(f"{target.name}: removed from {target}")
+
+
 def install_one(skill: Skill, dest_root: Path, mode: str, overwrite: bool) -> None:
     dest_root.mkdir(parents=True, exist_ok=True)
     target = dest_root / skill.name
@@ -313,6 +325,16 @@ def cmd_install(args: argparse.Namespace) -> int:
     dest = Path(args.dest).expanduser()
     for skill in selected_skills(args):
         install_one(skill, dest, args.mode, args.overwrite)
+    return 0
+
+
+def cmd_uninstall(args: argparse.Namespace) -> int:
+    if not args.skills:
+        fail("provide one or more installed skills to remove")
+
+    dest = Path(args.dest).expanduser()
+    for name in args.skills:
+        uninstall_one(name, dest, args.missing_ok)
     return 0
 
 
@@ -522,6 +544,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replace an existing destination if needed",
     )
     install_parser.set_defaults(func=cmd_install)
+
+    uninstall_parser = subparsers.add_parser("uninstall", help="Remove one or more installed skills")
+    uninstall_parser.add_argument("skills", nargs="+", help="Installed skill names to remove")
+    uninstall_parser.add_argument(
+        "--dest",
+        default=str(DEFAULT_DEST),
+        help="Installed skills directory (default: ~/.codex/skills)",
+    )
+    uninstall_parser.add_argument(
+        "--missing-ok",
+        action="store_true",
+        help="Treat missing installed skills as a no-op",
+    )
+    uninstall_parser.set_defaults(func=cmd_uninstall)
 
     install_github_parser = subparsers.add_parser(
         "install-github",

@@ -22,6 +22,12 @@ Install every skill from the clone:
 python3 scripts/skill_repo.py install --all --mode link
 ```
 
+Remove an installed skill:
+
+```bash
+python3 scripts/skill_repo.py uninstall workloop
+```
+
 ## Install directly from GitHub
 
 List what is available from the published repo:
