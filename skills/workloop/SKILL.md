@@ -18,7 +18,8 @@ Create a thread heartbeat for active coding work that should keep moving without
 ## Planning directory convention
 
 - Do not default to root-level `task_plan.md`, `findings.md`, or `progress.md`.
-- Prefer a task-specific folder under `.workloop/`, using a timestamped directory such as `.workloop/work_20260418_154812/`.
+- Prefer a task-specific folder under `.workloop/`, ideally one prepared by [$planwork](/Users/demoon/Documents/project/mySkills/skills/planwork/SKILL.md).
+- A directory such as `.workloop/work_20260418_154812/` is acceptable, and `.workloop/work_20260418_154812_<slug>/` is even better when the task name should stay visible.
 - Store planning artifacts in that folder:
   - `.workloop/work_<timestamp>/task_plan.md`
   - `.workloop/work_<timestamp>/findings.md`
@@ -26,10 +27,18 @@ Create a thread heartbeat for active coding work that should keep moving without
 - If the task already has a clearly active `.workloop/work_*` folder, reuse it instead of creating a second folder for the same work.
 - If the user already has another established planning location and explicitly wants to keep it, respect that instead of forcing `.workloop/`.
 
+## Integration with planwork
+
+- If [$planwork](/Users/demoon/Documents/project/mySkills/skills/planwork/SKILL.md) prepared the planning files, treat them as the source of truth for scope, `Done When`, verification, and blockers.
+- Re-read the exact `task_plan.md`, `findings.md`, and `progress.md` files on every wakeup instead of reconstructing the plan from memory.
+- Do not silently loosen `Done When` or scope boundaries that came from `planwork`.
+- If the planning files still show unresolved questions that require user direction, stop execution and report the blocker instead of drifting into guesses.
+
 ## When shaping the prompt
 
 - Describe only the recurring task. Do not put schedule details in the prompt.
 - Reuse existing planning artifacts when they exist, especially the files inside the active `.workloop/work_*` folder and any main plan doc under `docs/`.
+- If a task was prepared by `planwork`, keep execution aligned with the plan instead of reopening the planning conversation on every wakeup.
 - State any folder boundary explicitly, for example `Keep changes limited to the admin folder.`
 - Tell the automation to take the next highest-priority step, not to re-plan from scratch each run.
 - Tell the automation to keep working until the goal is actually complete, not merely advanced.
@@ -123,5 +132,6 @@ Continue the current coding task. Use .workloop/work_<timestamp>/task_plan.md, .
 - `Use $workloop to set up a 1-minute loop that keeps pushing this refactor forward.`
 - `Use $workloop to make the current admin-only migration continue every minute in this thread.`
 - `Use $workloop to create a heartbeat that re-reads .workloop/work_20260418_154812/task_plan.md, findings.md, and progress.md, then keeps working.`
+- `Use $planwork first to shape the task, then use $workloop to execute the approved plan every minute.`
 - `Use $workloop to update the current heartbeat so it only works inside admin/src.`
 - `Use $workloop to stop the current 1-minute coding loop.`

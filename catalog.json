@@ -1,8 +1,16 @@
 {
   "version": 1,
-  "generated_at": "2026-04-18T07:07:18.841813+00:00",
+  "generated_at": "2026-04-18T09:57:05.417313+00:00",
   "skills_dir": "skills",
   "skills": [
+    {
+      "name": "planwork",
+      "description": "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, and prepare workloop-ready plan files when the goal, scope, and done criteria are clear.",
+      "path": "skills/planwork",
+      "display_name": "planwork",
+      "short_description": "Plan a task through user conversation, then make it ready for workloop.",
+      "default_prompt": "Use $planwork to talk through the task, create a dedicated .workloop planning folder with clear Done When and verification rules, and hand it off to $workloop only after the plan is stable."
+    },
     {
       "name": "webp",
       "description": "Use demoon84/webp-maker to convert image files to WebP or build animated WebP assets from folders of frames.",
@@ -17,7 +25,7 @@
       "path": "skills/workloop",
       "display_name": "workloop",
       "short_description": "Create a same-thread 1-minute coding loop.",
-      "default_prompt": "Use $workloop to create a 1-minute same-thread coding heartbeat that uses a dedicated .workloop planning folder, advances the next step, verifies changes, and posts concise status."
+      "default_prompt": "Use $workloop to create a 1-minute same-thread coding heartbeat that reuses the active .workloop planning folder, advances the next step, verifies changes, and posts concise status."
     }
   ]
 }

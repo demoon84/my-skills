@@ -4,6 +4,7 @@ GitHub-managed Codex skills collection for local installation and reuse.
 
 ## Included skills
 
+- `planwork`: talks through a task with the user, creates a dedicated `.workloop` planning folder, and prepares work that can be handed to `workloop`
 - `workloop`: creates or updates a same-thread coding heartbeat with `.workloop/work_<timestamp>/` planning folders and explicit completion rules
 - `webp`: uses `demoon84/webp-maker` to produce static or animated WebP assets
 
@@ -13,6 +14,7 @@ GitHub-managed Codex skills collection for local installation and reuse.
 git clone https://github.com/demoon84/my-skills.git
 cd my-skills
 python3 scripts/skill_repo.py install workloop --mode link
+python3 scripts/skill_repo.py install planwork --mode link
 python3 scripts/skill_repo.py install webp --mode link
 ```
 
@@ -47,6 +49,7 @@ If you already have this repository checked out somewhere, you can use its helpe
 
 ```bash
 python3 scripts/skill_repo.py install-github demoon84/my-skills workloop
+python3 scripts/skill_repo.py install-github demoon84/my-skills planwork
 python3 scripts/skill_repo.py install-github demoon84/my-skills webp
 ```
 
