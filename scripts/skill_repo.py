@@ -8,6 +8,9 @@ import os
 import re
 import shutil
 import sys
+import tarfile
+import tempfile
+import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +22,7 @@ CATALOG_PATH = ROOT / "catalog.json"
 DEFAULT_DEST = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "skills"
 NAME_RE = re.compile(r"^[a-z0-9-]+$")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
 
 @dataclass
@@ -148,6 +152,19 @@ def load_skills() -> list[Skill]:
     return skills
 
 
+def load_skills_from_root(root: Path) -> list[Skill]:
+    skills_dir = root / "skills"
+    if not skills_dir.exists():
+        fail(f"{root} does not contain a skills directory")
+
+    skills: list[Skill] = []
+    for skill_dir in sorted(path for path in skills_dir.iterdir() if path.is_dir()):
+        if not (skill_dir / "SKILL.md").exists():
+            continue
+        skills.append(load_skill(skill_dir))
+    return skills
+
+
 def build_catalog(skills: list[Skill]) -> dict[str, object]:
     return {
         "version": 1,
@@ -248,13 +265,16 @@ def install_one(skill: Skill, dest_root: Path, mode: str, overwrite: bool) -> No
 
 
 def selected_skills(args: argparse.Namespace) -> list[Skill]:
-    skills = load_skills()
+    return select_skills(load_skills(), args.skills, args.all)
+
+
+def select_skills(skills: list[Skill], names: list[str], all_skills: bool) -> list[Skill]:
     by_name = {skill.name: skill for skill in skills}
 
-    if args.all:
+    if all_skills:
         return skills
 
-    names = [normalize_name(name) for name in args.skills]
+    names = [normalize_name(name) for name in names]
     missing = [name for name in names if name not in by_name]
     if missing:
         fail(f"unknown skill(s): {', '.join(missing)}")
@@ -268,6 +288,57 @@ def cmd_install(args: argparse.Namespace) -> int:
     dest = Path(args.dest).expanduser()
     for skill in selected_skills(args):
         install_one(skill, dest, args.mode, args.overwrite)
+    return 0
+
+
+def normalize_repo(value: str) -> str:
+    candidate = value.strip()
+    if candidate.startswith("https://github.com/"):
+        candidate = candidate.removeprefix("https://github.com/")
+    candidate = candidate.removesuffix(".git").strip("/")
+
+    parts = candidate.split("/")
+    if len(parts) >= 2:
+        candidate = f"{parts[0]}/{parts[1]}"
+
+    if not REPO_RE.fullmatch(candidate):
+        fail("repo must look like owner/name or https://github.com/owner/name")
+    return candidate
+
+
+def github_archive_url(repo: str, ref: str) -> str:
+    return f"https://codeload.github.com/{repo}/tar.gz/{ref}"
+
+
+def download_and_extract_repo(repo: str, ref: str) -> Path:
+    temp_dir = Path(tempfile.mkdtemp(prefix="skill-repo-"))
+    archive_path = temp_dir / "repo.tar.gz"
+    urllib.request.urlretrieve(github_archive_url(repo, ref), archive_path)
+
+    with tarfile.open(archive_path, "r:gz") as archive:
+        archive.extractall(temp_dir)
+
+    roots = [path for path in temp_dir.iterdir() if path.is_dir()]
+    if not roots:
+        fail(f"downloaded archive for {repo}@{ref} did not extract correctly")
+    return roots[0]
+
+
+def cmd_install_github(args: argparse.Namespace) -> int:
+    if not args.all and not args.skills:
+        fail("provide one or more skills, or use --all")
+
+    repo = normalize_repo(args.repo)
+    dest = Path(args.dest).expanduser()
+    extracted_root = download_and_extract_repo(repo, args.ref)
+
+    try:
+        remote_skills = load_skills_from_root(extracted_root)
+        for skill in select_skills(remote_skills, args.skills, args.all):
+            install_one(skill, dest, "copy", args.overwrite)
+    finally:
+        shutil.rmtree(extracted_root.parent, ignore_errors=True)
+
     return 0
 
 
@@ -336,6 +407,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replace an existing destination if needed",
     )
     install_parser.set_defaults(func=cmd_install)
+
+    install_github_parser = subparsers.add_parser(
+        "install-github",
+        help="Install skills from a GitHub repository into ~/.codex/skills",
+    )
+    install_github_parser.add_argument("repo", help="GitHub repo like owner/name or a GitHub URL")
+    install_github_parser.add_argument("skills", nargs="*", help="Skill names to install")
+    install_github_parser.add_argument("--all", action="store_true", help="Install every skill in the remote repo")
+    install_github_parser.add_argument(
+        "--ref",
+        default="main",
+        help="Git ref to download from GitHub (default: main)",
+    )
+    install_github_parser.add_argument(
+        "--dest",
+        default=str(DEFAULT_DEST),
+        help="Destination skills directory (default: ~/.codex/skills)",
+    )
+    install_github_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing destination if needed",
+    )
+    install_github_parser.set_defaults(func=cmd_install_github)
 
     refresh_parser = subparsers.add_parser(
         "refresh-catalog",
