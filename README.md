@@ -14,6 +14,8 @@ Use `planwork` first when the task still needs a short planning conversation. It
 
 Once that plan is stable, hand the exact planning files to `workloop` so the same-thread heartbeat keeps moving against the approved plan instead of replanning each wakeup.
 
+If the conversation already makes execution intent obvious, `planwork` should not wait for a second explicit `$workloop` request. Follow-ups such as `continue`, `go ahead`, `keep going`, `진행`, or `계속` should be enough to trigger the hand-off once the planning files are stable.
+
 Example flow:
 
 ```text

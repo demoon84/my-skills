@@ -1,6 +1,6 @@
 ---
 name: planwork
-description: "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, optionally record a Model Strategy, and prepare workloop-ready plan files when the goal, scope, and done criteria are clear."
+description: "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, optionally record a Model Strategy, and hand the task off to workloop when execution intent is clear."
 ---
 
 # Planwork
@@ -34,7 +34,8 @@ Use this skill when the task is still fuzzy enough that Codex should slow down, 
    - `findings.md`
    - `progress.md`
 8. If the user wants recurring background progress, hand the task off to [$workloop](/Users/demoon/Documents/project/mySkills/skills/workloop/SKILL.md) after the plan is stable.
-9. If the user only wants planning, stop after the plan files are ready and summarized.
+9. Treat clear momentum language such as `continue`, `go ahead`, `keep going`, `진행`, `계속`, or equivalent follow-up approval as permission to create or update the heartbeat without asking again.
+10. If the user only wants planning, review, or a draft plan, stop after the plan files are ready and summarized.
 
 ## Planning artifact contract
 
@@ -100,6 +101,27 @@ The goal is to capture a recommendation the user and agent can both understand l
 - When the task has risky ambiguity, get user confirmation before turning the plan into an active loop.
 - When the task is straightforward and the user clearly wants momentum, create the plan with minimal friction and move forward.
 
+## Auto hand-off defaults
+
+Default to creating or updating `workloop` once the plan is stable when the user's intent already implies continued execution.
+
+Examples that should count as execution intent:
+
+- `continue`
+- `go ahead`
+- `keep going`
+- `진행`
+- `계속`
+- a follow-up that clearly approves the next implementation step after planning
+
+Do not stop to ask redundant permission in those cases.
+
+Do not auto-start the heartbeat only when one of these is true:
+
+- the user explicitly asked for planning only
+- the user asked for review or a draft without execution
+- a blocker, approval, or product decision still makes autonomous execution risky
+
 ## Hand-off to workloop
 
 Only start or update `workloop` when the planning artifacts are specific enough that repeated wakeups will not drift.
@@ -114,13 +136,15 @@ Before handing off, make sure:
 
 When handing off, point `workloop` at the exact planning files and tell it to keep using them.
 
+If the user's intent already implies "plan it and keep going," create or update the heartbeat as the default hand-off instead of stopping after the summary.
+
 Example prompt shape:
 
 ```text
 Use [$workloop](/Users/demoon/Documents/project/mySkills/skills/workloop/SKILL.md) to create a 1-minute same-thread coding heartbeat for this task. Re-read .workloop/work_<timestamp>_<slug>/task_plan.md, .workloop/work_<timestamp>_<slug>/findings.md, and .workloop/work_<timestamp>_<slug>/progress.md on each wakeup. Keep changes limited to <allowed scope>. Advance the next highest-priority step, verify after code changes, update the planning files, and stop only when the Done When criteria are satisfied or a real blocker requires user input.
 ```
 
-If the user did not ask for recurring execution, do not create the heartbeat automatically.
+If the user explicitly asked for planning only, do not create the heartbeat automatically.
 
 ## Good defaults
 
@@ -159,3 +183,4 @@ Use `Model Strategy` only when it adds signal:
 - Do not leave planning files at repo root when a task-specific `.workloop` folder will isolate them cleanly.
 - Do not let `workloop` become the owner of planning semantics; `planwork` defines the plan, `workloop` executes against it.
 - Do not let `Model Strategy` turn `planwork` into a harness. Recommendations are fine; automatic routing is not part of this skill.
+- Do not force the user to ask for `workloop` twice when execution intent is already obvious from the conversation.
