@@ -25,14 +25,15 @@ Use this skill when the task is still fuzzy enough that Codex should slow down, 
    - what counts as done
    - any blockers, approvals, or open questions
 3. Ask only substantial questions. If the task is already clear enough, summarize the assumptions and continue without creating unnecessary back-and-forth.
-4. Once the task is clear, create or reuse one task folder under `.workloop/`.
-5. Prefer a directory name like `.workloop/work_<timestamp>_<slug>/`. If a stable folder already exists for the same task, reuse it instead of creating a second one.
-6. Create or update these planning artifacts inside that folder:
+4. Once the task is clear, ensure the `.workloop/` root exists. If it is already present, leave it alone and pass.
+5. For a new task, create a fresh timestamped child folder such as `.workloop/work_<timestamp>_<slug>/`.
+6. Reuse that exact child folder only after it has been chosen for the current task. Do not create a second child folder for every wakeup.
+7. Create or update these planning artifacts inside that folder:
    - `task_plan.md`
    - `findings.md`
    - `progress.md`
-7. If the user wants recurring background progress, hand the task off to [$workloop](/Users/demoon/Documents/project/mySkills/skills/workloop/SKILL.md) after the plan is stable.
-8. If the user only wants planning, stop after the plan files are ready and summarized.
+8. If the user wants recurring background progress, hand the task off to [$workloop](/Users/demoon/Documents/project/mySkills/skills/workloop/SKILL.md) after the plan is stable.
+9. If the user only wants planning, stop after the plan files are ready and summarized.
 
 ## Planning artifact contract
 

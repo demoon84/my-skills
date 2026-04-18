@@ -19,12 +19,15 @@ Create a thread heartbeat for active coding work that should keep moving without
 
 - Do not default to root-level `task_plan.md`, `findings.md`, or `progress.md`.
 - Prefer a task-specific folder under `.workloop/`, ideally one prepared by [$planwork](/Users/demoon/Documents/project/mySkills/skills/planwork/SKILL.md).
+- If `.workloop/` already exists, leave it in place and do not recreate or reset it.
+- If `.workloop/` does not exist yet, create it once and use it as the parent container for future task folders.
 - A directory such as `.workloop/work_20260418_154812/` is acceptable, and `.workloop/work_20260418_154812_<slug>/` is even better when the task name should stay visible.
+- For a new task or fresh planning session, create a new timestamp-based child folder under `.workloop/` instead of overwriting an older task folder.
 - Store planning artifacts in that folder:
   - `.workloop/work_<timestamp>/task_plan.md`
   - `.workloop/work_<timestamp>/findings.md`
   - `.workloop/work_<timestamp>/progress.md`
-- If the task already has a clearly active `.workloop/work_*` folder, reuse it instead of creating a second folder for the same work.
+- Once a child folder has been chosen for the current task, reuse that exact `.workloop/work_*` folder across wakeups instead of creating a new one every run.
 - If the user already has another established planning location and explicitly wants to keep it, respect that instead of forcing `.workloop/`.
 
 ## Integration with planwork
@@ -102,7 +105,7 @@ If the user also gave a folder boundary:
 Continue the current refactor. Re-read .workloop/work_<timestamp>/task_plan.md, .workloop/work_<timestamp>/findings.md, .workloop/work_<timestamp>/progress.md, and docs/<plan>. Keep changes limited to the admin folder. Advance the next highest-priority step. Keep working until the goal is fully complete, not just partially advanced. Verify relevant tests or typecheck when code changes are made. Update the planning files. Treat the task as done only when the requested outcome is implemented, relevant verification passes, no P0 or P1 blockers remain, and the planning files reflect the final state. Leave a concise status update with any blockers.
 ```
 
-If planning files do not exist yet, create a fresh `.workloop` folder and use it from then on:
+If planning files do not exist yet, create `.workloop/` only if it is missing, then create a fresh timestamped child folder for this task and use it from then on:
 
 ```text
 Continue the current coding task. Use .workloop/work_<timestamp>/task_plan.md, .workloop/work_<timestamp>/findings.md, and .workloop/work_<timestamp>/progress.md as the planning files for this task. Add a short Done When section near the top of the task plan. Inspect the latest repo state, take the next highest-priority step, keep working until the goal is fully complete, verify after code changes, update those planning files, and leave a concise status update with any blockers.
@@ -111,9 +114,9 @@ Continue the current coding task. Use .workloop/work_<timestamp>/task_plan.md, .
 ## Lifecycle rules
 
 1. Create a new heartbeat when the user wants recurring background progress.
-2. When creating a new loop for a new task, create or choose one `.workloop/work_*` folder and keep using it consistently.
+2. When creating a new loop for a new task, keep the existing `.workloop/` root if it is already there, then create a fresh timestamped `.workloop/work_*` child folder for that task.
 3. Update the existing heartbeat when the task scope, allowed folder, or plan files change.
-4. Avoid overwriting planning files from unrelated tasks by reusing only the matching `.workloop/work_*` folder.
+4. Reuse only the matching `.workloop/work_*` folder for the active task, and do not overwrite planning files from unrelated older task folders.
 5. Pause it only when the user wants a temporary stop.
 6. Delete it when the main goal is done, stale, or replaced.
 7. Avoid duplicate heartbeats for the same task.
