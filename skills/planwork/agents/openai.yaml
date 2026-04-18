@@ -1,4 +1,4 @@
 interface:
   display_name: "planwork"
-  short_description: "Plan a task through user conversation, then make it ready for workloop."
-  default_prompt: "Use $planwork to talk through the task, create a dedicated .workloop planning folder with clear Done When and verification rules, and hand it off to $workloop only after the plan is stable."
+  short_description: "Plan a task through user conversation, optionally add model strategy, then make it ready for workloop."
+  default_prompt: "Use $planwork to talk through the task, create a dedicated .workloop planning folder with clear Done When, verification rules, and an optional Model Strategy, and hand it off to $workloop only after the plan is stable."

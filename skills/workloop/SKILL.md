@@ -34,7 +34,9 @@ Create a thread heartbeat for active coding work that should keep moving without
 
 - If [$planwork](/Users/demoon/Documents/project/mySkills/skills/planwork/SKILL.md) prepared the planning files, treat them as the source of truth for scope, `Done When`, verification, and blockers.
 - Re-read the exact `task_plan.md`, `findings.md`, and `progress.md` files on every wakeup instead of reconstructing the plan from memory.
+- If the task plan includes a `Model Strategy`, treat it as advisory planning context only.
 - Do not silently loosen `Done When` or scope boundaries that came from `planwork`.
+- Do not treat `Model Strategy` as permission to auto-route models, spawn workers, or turn the loop into a harness.
 - If the planning files still show unresolved questions that require user direction, stop execution and report the blocker instead of drifting into guesses.
 
 ## When shaping the prompt
@@ -42,6 +44,7 @@ Create a thread heartbeat for active coding work that should keep moving without
 - Describe only the recurring task. Do not put schedule details in the prompt.
 - Reuse existing planning artifacts when they exist, especially the files inside the active `.workloop/work_*` folder and any main plan doc under `docs/`.
 - If a task was prepared by `planwork`, keep execution aligned with the plan instead of reopening the planning conversation on every wakeup.
+- If a plan includes `Model Strategy`, keep it read-only unless the user explicitly asks to revise the plan.
 - State any folder boundary explicitly, for example `Keep changes limited to the admin folder.`
 - Tell the automation to take the next highest-priority step, not to re-plan from scratch each run.
 - Tell the automation to keep working until the goal is actually complete, not merely advanced.
@@ -129,6 +132,7 @@ Continue the current coding task. Use .workloop/work_<timestamp>/task_plan.md, .
 - Do not create a separate cron automation when the user wants sub-hour cadence in the same thread.
 - If the work depends on planning artifacts, make re-reading them part of the prompt instead of assuming memory.
 - Do not scatter multiple unrelated planning files at repo root when a `.workloop/work_*` folder will keep the task isolated.
+- Do not turn an advisory `Model Strategy` section into implicit runtime routing behavior.
 
 ## Example requests
 

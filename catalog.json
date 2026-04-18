@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-04-18T09:57:05.417313+00:00",
+  "generated_at": "2026-04-18T10:33:41.628354+00:00",
   "skills_dir": "skills",
   "skills": [
     {
       "name": "planwork",
-      "description": "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, and prepare workloop-ready plan files when the goal, scope, and done criteria are clear.",
+      "description": "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, optionally record a Model Strategy, and prepare workloop-ready plan files when the goal, scope, and done criteria are clear.",
       "path": "skills/planwork",
       "display_name": "planwork",
-      "short_description": "Plan a task through user conversation, then make it ready for workloop.",
-      "default_prompt": "Use $planwork to talk through the task, create a dedicated .workloop planning folder with clear Done When and verification rules, and hand it off to $workloop only after the plan is stable."
+      "short_description": "Plan a task through user conversation, optionally add model strategy, then make it ready for workloop.",
+      "default_prompt": "Use $planwork to talk through the task, create a dedicated .workloop planning folder with clear Done When, verification rules, and an optional Model Strategy, and hand it off to $workloop only after the plan is stable."
     },
     {
       "name": "webp",

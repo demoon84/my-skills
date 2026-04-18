@@ -1,6 +1,6 @@
 ---
 name: planwork
-description: "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, and prepare workloop-ready plan files when the goal, scope, and done criteria are clear."
+description: "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, optionally record a Model Strategy, and prepare workloop-ready plan files when the goal, scope, and done criteria are clear."
 ---
 
 # Planwork
@@ -23,6 +23,7 @@ Use this skill when the task is still fuzzy enough that Codex should slow down, 
    - key constraints or non-goals
    - how success will be verified
    - what counts as done
+   - an optional `Model Strategy` when the user cares about speed, cost, depth, or different task shapes
    - any blockers, approvals, or open questions
 3. Ask only substantial questions. If the task is already clear enough, summarize the assumptions and continue without creating unnecessary back-and-forth.
 4. Once the task is clear, ensure the `.workloop/` root exists. If it is already present, leave it alone and pass.
@@ -44,6 +45,7 @@ Use this skill when the task is still fuzzy enough that Codex should slow down, 
 - `Goal`
 - `Scope`
 - `Constraints`
+- `Model Strategy` when it would help the task
 - `Done When`
 - `Verification`
 - `Open Questions`
@@ -63,6 +65,33 @@ Use this skill when the task is still fuzzy enough that Codex should slow down, 
 
 Keep these files concise and current. Do not let them become a second long-form spec unless the task truly needs it.
 
+## Model Strategy
+
+Use `Model Strategy` only when the user explicitly wants model guidance or when the task clearly benefits from documenting which model best fits which subtask.
+
+Treat it as planning metadata, not runtime automation.
+
+- Good fit: "use a deeper model for architecture work and a faster model for narrow cleanup"
+- Not in scope: automatic routing, worker orchestration, retries, fallbacks, or model switching logic
+
+When present, keep the section simple and task-oriented. A compact format like this is usually enough:
+
+```text
+## Model Strategy
+
+- Task: architecture-heavy refactor
+  preferred_model: gpt-5.3-codex
+  fallback_model: gpt-5.3-codex-spark
+  why: larger cross-file reasoning and safer patch planning
+
+- Task: narrow cleanup or quick follow-up patch
+  preferred_model: gpt-5.3-codex-spark
+  fallback_model: gpt-5.3-codex
+  why: fast iteration with lower overhead
+```
+
+The goal is to capture a recommendation the user and agent can both understand later. It is not a command to spawn agents or route work automatically.
+
 ## Conversation rules
 
 - Prefer a short planning dialogue over one giant questionnaire.
@@ -80,7 +109,8 @@ Before handing off, make sure:
 1. `Goal` and `Done When` are explicit.
 2. The allowed scope or folder boundary is written down.
 3. Verification expectations are named.
-4. The next highest-priority step is visible from the plan.
+4. If `Model Strategy` exists, it is clear that it is advisory planning guidance rather than harness behavior.
+5. The next highest-priority step is visible from the plan.
 
 When handing off, point `workloop` at the exact planning files and tell it to keep using them.
 
@@ -109,9 +139,23 @@ Done when:
 - Relevant metadata is refreshed and validated
 ```
 
+Use `Model Strategy` only when it adds signal:
+
+```text
+## Model Strategy
+- Task: repo-wide design or refactor
+  preferred_model: gpt-5.3-codex
+  why: deeper reasoning across multiple files
+
+- Task: small targeted cleanup
+  preferred_model: gpt-5.3-codex-spark
+  why: faster narrow iteration
+```
+
 ## Guardrails
 
 - Do not skip the conversation step just because `workloop` exists.
 - Do not create a heartbeat that still depends on missing product decisions.
 - Do not leave planning files at repo root when a task-specific `.workloop` folder will isolate them cleanly.
 - Do not let `workloop` become the owner of planning semantics; `planwork` defines the plan, `workloop` executes against it.
+- Do not let `Model Strategy` turn `planwork` into a harness. Recommendations are fine; automatic routing is not part of this skill.

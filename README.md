@@ -26,6 +26,25 @@ Then:
 Use $workloop to create a 1-minute same-thread coding heartbeat that re-reads .workloop/work_<timestamp>_<slug>/task_plan.md, .workloop/work_<timestamp>_<slug>/findings.md, and .workloop/work_<timestamp>_<slug>/progress.md, keeps changes limited to this repo, verifies relevant checks after code changes, and stops only when the Done When criteria are satisfied or a real blocker requires input.
 ```
 
+## Optional `Model Strategy`
+
+`planwork` can also record a simple `Model Strategy` section when the user wants guidance on which Codex model fits which subtask.
+
+This repository treats that section as planning metadata only. It is useful for recommendations like "use a deeper model for architecture work and a faster model for narrow cleanup," but it does not turn `planwork` or `workloop` into an automatic routing harness.
+
+Example:
+
+```text
+## Model Strategy
+- Task: architecture-heavy refactor
+  preferred_model: gpt-5.3-codex
+  why: deeper reasoning across multiple files
+
+- Task: small focused follow-up
+  preferred_model: gpt-5.3-codex-spark
+  why: faster narrow iteration
+```
+
 ## Install from a local clone
 
 ```bash
