@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-04-18T06:44:42.069369+00:00",
+  "generated_at": "2026-04-18T07:07:18.841813+00:00",
   "skills_dir": "skills",
   "skills": [
     {
@@ -17,7 +17,7 @@
       "path": "skills/workloop",
       "display_name": "workloop",
       "short_description": "Create a same-thread 1-minute coding loop.",
-      "default_prompt": "Use $workloop to create a 1-minute same-thread coding heartbeat that re-reads planning files, advances the next step, verifies changes, and posts concise status."
+      "default_prompt": "Use $workloop to create a 1-minute same-thread coding heartbeat that uses a dedicated .workloop planning folder, advances the next step, verifies changes, and posts concise status."
     }
   ]
 }

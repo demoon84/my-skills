@@ -15,52 +15,99 @@ Create a thread heartbeat for active coding work that should keep moving without
 - Default `status` to `ACTIVE` unless the user asks to start paused.
 - If the user does not provide a name, use a short name such as `Refactor Loop` or `Workloop`.
 
+## Planning directory convention
+
+- Do not default to root-level `task_plan.md`, `findings.md`, or `progress.md`.
+- Prefer a task-specific folder under `.workloop/`, using a timestamped directory such as `.workloop/work_20260418_154812/`.
+- Store planning artifacts in that folder:
+  - `.workloop/work_<timestamp>/task_plan.md`
+  - `.workloop/work_<timestamp>/findings.md`
+  - `.workloop/work_<timestamp>/progress.md`
+- If the task already has a clearly active `.workloop/work_*` folder, reuse it instead of creating a second folder for the same work.
+- If the user already has another established planning location and explicitly wants to keep it, respect that instead of forcing `.workloop/`.
+
 ## When shaping the prompt
 
 - Describe only the recurring task. Do not put schedule details in the prompt.
-- Reuse existing planning artifacts when they exist, especially `task_plan.md`, `findings.md`, `progress.md`, and a main plan doc under `docs/`.
+- Reuse existing planning artifacts when they exist, especially the files inside the active `.workloop/work_*` folder and any main plan doc under `docs/`.
 - State any folder boundary explicitly, for example `Keep changes limited to the admin folder.`
 - Tell the automation to take the next highest-priority step, not to re-plan from scratch each run.
+- Tell the automation to keep working until the goal is actually complete, not merely advanced.
 - Tell it to verify after code changes, then update planning artifacts, then leave a concise status with blockers.
 - Tell it to stay quiet unless something important changed when that matters.
+- Name the exact `.workloop` directory in the prompt so future wakeups keep using the same files.
+
+## Definition of done
+
+Treat the task as complete only when all of the following are true:
+
+1. The requested user-visible outcome is implemented, not just partially advanced.
+2. The work stays within the allowed scope or folder boundary.
+3. Relevant verification has passed after the latest code changes, such as tests, typecheck, build, or another directly relevant check.
+4. No unresolved high-priority blocker remains for that task in the active `.workloop/work_*` folder.
+5. The planning artifacts in the active `.workloop/work_*` folder are updated to reflect the final state.
+
+When useful, tell the automation to maintain a `Done When` section near the top of `.workloop/work_<timestamp>/task_plan.md` so completion stays explicit across wakeups.
+
+Example:
+
+```text
+Done when:
+- The requested feature or fix works end to end
+- Relevant tests or checks pass
+- No P0 or P1 blockers remain for this task
+- .workloop/work_<timestamp>/progress.md reflects the final status
+```
+
+## Stop conditions
+
+Tell the automation to stop advancing the task only when one of these is true:
+
+1. All completion criteria are satisfied.
+2. A real blocker requires user input, credentials, external approval, or a product decision.
+3. Requirements conflict in a way that would make autonomous guessing risky.
+
+When blocked, tell it to avoid drifting into unrelated work. It should record the blocker clearly in the active `.workloop/work_*` folder and leave a concise status update.
 
 ## Prompt recipe
 
 Use this shape and swap in the real scope and file paths:
 
 ```text
-Continue the <scope> work. Re-read <planning files>. Advance the next highest-priority step. Keep changes limited to <allowed scope>. Verify relevant tests or typecheck when code changes are made. Update the planning files. Leave a concise status update with any blockers.
+Continue the <scope> work. Re-read <planning files>. Advance the next highest-priority step. Keep changes limited to <allowed scope>. Keep working until the goal is fully complete, not just partially advanced. Verify relevant tests or typecheck when code changes are made. Update the planning files. Leave a concise status update with any blockers.
 ```
 
 If the work already has a stable plan, name the exact files. Prefer explicit file lists over vague references like `review the docs`.
 
 ## Good defaults
 
-If planning files already exist:
+If planning files already exist in a `.workloop` folder:
 
 ```text
-Continue the current refactor. Re-read task_plan.md, findings.md, progress.md, and docs/<plan>. Advance the next highest-priority step. Verify relevant tests or typecheck when code changes are made. Update the planning files. Leave a concise status update with any blockers.
+Continue the current refactor. Re-read .workloop/work_<timestamp>/task_plan.md, .workloop/work_<timestamp>/findings.md, .workloop/work_<timestamp>/progress.md, and docs/<plan>. Advance the next highest-priority step. Keep working until the goal is fully complete, not just partially advanced. Verify relevant tests or typecheck when code changes are made. Update the planning files. Treat the task as done only when the requested outcome is implemented, relevant verification passes, no P0 or P1 blockers remain, and the planning files reflect the final state. Leave a concise status update with any blockers.
 ```
 
 If the user also gave a folder boundary:
 
 ```text
-Continue the current refactor. Re-read task_plan.md, findings.md, progress.md, and docs/<plan>. Keep changes limited to the admin folder. Advance the next highest-priority step. Verify relevant tests or typecheck when code changes are made. Update the planning files. Leave a concise status update with any blockers.
+Continue the current refactor. Re-read .workloop/work_<timestamp>/task_plan.md, .workloop/work_<timestamp>/findings.md, .workloop/work_<timestamp>/progress.md, and docs/<plan>. Keep changes limited to the admin folder. Advance the next highest-priority step. Keep working until the goal is fully complete, not just partially advanced. Verify relevant tests or typecheck when code changes are made. Update the planning files. Treat the task as done only when the requested outcome is implemented, relevant verification passes, no P0 or P1 blockers remain, and the planning files reflect the final state. Leave a concise status update with any blockers.
 ```
 
-If planning files do not exist yet:
+If planning files do not exist yet, create a fresh `.workloop` folder and use it from then on:
 
 ```text
-Continue the current coding task. Inspect the latest repo state, take the next highest-priority step, verify after code changes, and leave a concise status update with any blockers.
+Continue the current coding task. Use .workloop/work_<timestamp>/task_plan.md, .workloop/work_<timestamp>/findings.md, and .workloop/work_<timestamp>/progress.md as the planning files for this task. Add a short Done When section near the top of the task plan. Inspect the latest repo state, take the next highest-priority step, keep working until the goal is fully complete, verify after code changes, update those planning files, and leave a concise status update with any blockers.
 ```
 
 ## Lifecycle rules
 
 1. Create a new heartbeat when the user wants recurring background progress.
-2. Update the existing heartbeat when the task scope, allowed folder, or plan files change.
-3. Pause it only when the user wants a temporary stop.
-4. Delete it when the main goal is done, stale, or replaced.
-5. Avoid duplicate heartbeats for the same task.
+2. When creating a new loop for a new task, create or choose one `.workloop/work_*` folder and keep using it consistently.
+3. Update the existing heartbeat when the task scope, allowed folder, or plan files change.
+4. Avoid overwriting planning files from unrelated tasks by reusing only the matching `.workloop/work_*` folder.
+5. Pause it only when the user wants a temporary stop.
+6. Delete it when the main goal is done, stale, or replaced.
+7. Avoid duplicate heartbeats for the same task.
 
 ## Guardrails
 
@@ -69,11 +116,12 @@ Continue the current coding task. Inspect the latest repo state, take the next h
 - Do not embed exact timestamps or schedule text inside the automation prompt.
 - Do not create a separate cron automation when the user wants sub-hour cadence in the same thread.
 - If the work depends on planning artifacts, make re-reading them part of the prompt instead of assuming memory.
+- Do not scatter multiple unrelated planning files at repo root when a `.workloop/work_*` folder will keep the task isolated.
 
 ## Example requests
 
 - `Use $workloop to set up a 1-minute loop that keeps pushing this refactor forward.`
 - `Use $workloop to make the current admin-only migration continue every minute in this thread.`
-- `Use $workloop to create a heartbeat that re-reads task_plan.md, findings.md, and progress.md, then keeps working.`
+- `Use $workloop to create a heartbeat that re-reads .workloop/work_20260418_154812/task_plan.md, findings.md, and progress.md, then keeps working.`
 - `Use $workloop to update the current heartbeat so it only works inside admin/src.`
 - `Use $workloop to stop the current 1-minute coding loop.`
