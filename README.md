@@ -74,3 +74,7 @@ Validate the repository metadata:
 ```bash
 python3 scripts/skill_repo.py validate
 ```
+
+## CI
+
+GitHub Actions runs `python3 scripts/skill_repo.py validate` on pushes to `main` and on pull requests so metadata drift is caught before release.
