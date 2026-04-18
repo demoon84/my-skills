@@ -8,6 +8,24 @@ GitHub-managed Codex skills collection for local installation and reuse.
 - `workloop`: creates or updates a same-thread coding heartbeat with `.workloop/work_<timestamp>/` planning folders and explicit completion rules
 - `webp`: uses `demoon84/webp-maker` to produce static or animated WebP assets
 
+## Plan with `planwork`, then run `workloop`
+
+Use `planwork` first when the task still needs a short planning conversation. It should clarify the goal, scope, verification, and `Done When`, then create a fresh task folder like `.workloop/work_<timestamp>_<slug>/`.
+
+Once that plan is stable, hand the exact planning files to `workloop` so the same-thread heartbeat keeps moving against the approved plan instead of replanning each wakeup.
+
+Example flow:
+
+```text
+Use $planwork to talk through this repository task with me, create a dedicated .workloop planning folder, and make the plan stable enough for $workloop.
+```
+
+Then:
+
+```text
+Use $workloop to create a 1-minute same-thread coding heartbeat that re-reads .workloop/work_<timestamp>_<slug>/task_plan.md, .workloop/work_<timestamp>_<slug>/findings.md, and .workloop/work_<timestamp>_<slug>/progress.md, keeps changes limited to this repo, verifies relevant checks after code changes, and stops only when the Done When criteria are satisfied or a real blocker requires input.
+```
+
 ## Install from a local clone
 
 ```bash
