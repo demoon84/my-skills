@@ -82,6 +82,12 @@ Validate the repository metadata:
 python3 scripts/skill_repo.py validate
 ```
 
+Run the unit tests:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py'
+```
+
 ## CI
 
 GitHub Actions runs `python3 scripts/skill_repo.py validate` on pushes to `main` and on pull requests so metadata drift is caught before release.

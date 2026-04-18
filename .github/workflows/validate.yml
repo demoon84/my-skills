@@ -21,3 +21,6 @@ jobs:
 
       - name: Validate skill metadata and catalog
         run: python3 scripts/skill_repo.py validate
+
+      - name: Run unit tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
