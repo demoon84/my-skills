@@ -28,6 +28,13 @@ Remove an installed skill:
 python3 scripts/skill_repo.py uninstall workloop
 ```
 
+Print install or uninstall results as JSON:
+
+```bash
+python3 scripts/skill_repo.py install workloop --mode link --json
+python3 scripts/skill_repo.py uninstall workloop --json
+```
+
 ## Install directly from GitHub
 
 List what is available from the published repo:
@@ -97,3 +104,4 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ## CI
 
 GitHub Actions runs `python3 scripts/skill_repo.py validate` on pushes to `main` and on pull requests so metadata drift is caught before release.
+It also runs `python3 -m unittest discover -s tests -p 'test_*.py'`.

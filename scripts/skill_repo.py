@@ -268,26 +268,37 @@ def remove_existing_target(target: Path) -> None:
         return
 
 
-def uninstall_one(name: str, dest_root: Path, missing_ok: bool) -> None:
+def uninstall_one(name: str, dest_root: Path, missing_ok: bool) -> dict[str, str]:
     target = dest_root / normalize_name(name)
     if not target.exists() and not target.is_symlink():
         if missing_ok:
-            print(f"{target.name}: already absent")
-            return
+            return {
+                "name": target.name,
+                "target": str(target),
+                "status": "already_absent",
+            }
         fail(f"{target} is not installed")
 
     remove_existing_target(target)
-    print(f"{target.name}: removed from {target}")
+    return {
+        "name": target.name,
+        "target": str(target),
+        "status": "removed",
+    }
 
 
-def install_one(skill: Skill, dest_root: Path, mode: str, overwrite: bool) -> None:
+def install_one(skill: Skill, dest_root: Path, mode: str, overwrite: bool) -> dict[str, str]:
     dest_root.mkdir(parents=True, exist_ok=True)
     target = dest_root / skill.name
 
     if target.exists() or target.is_symlink():
         if target.is_symlink() and target.resolve() == skill.path.resolve():
-            print(f"{skill.name}: already installed")
-            return
+            return {
+                "name": skill.name,
+                "target": str(target),
+                "status": "already_installed",
+                "mode": mode,
+            }
         if not overwrite:
             fail(f"{target} already exists (pass --overwrite to replace it)")
         remove_existing_target(target)
@@ -297,7 +308,12 @@ def install_one(skill: Skill, dest_root: Path, mode: str, overwrite: bool) -> No
     else:
         shutil.copytree(skill.path, target, symlinks=True)
 
-    print(f"{skill.name}: installed to {target}")
+    return {
+        "name": skill.name,
+        "target": str(target),
+        "status": "installed",
+        "mode": mode,
+    }
 
 
 def selected_skills(args: argparse.Namespace) -> list[Skill]:
@@ -323,8 +339,18 @@ def cmd_install(args: argparse.Namespace) -> int:
         fail("provide one or more skills, or use --all")
 
     dest = Path(args.dest).expanduser()
+    results = []
     for skill in selected_skills(args):
-        install_one(skill, dest, args.mode, args.overwrite)
+        results.append(install_one(skill, dest, args.mode, args.overwrite))
+
+    if args.json:
+        print(json.dumps(results, indent=2, ensure_ascii=False))
+    else:
+        for result in results:
+            if result["status"] == "already_installed":
+                print(f"{result['name']}: already installed")
+            else:
+                print(f"{result['name']}: installed to {result['target']}")
     return 0
 
 
@@ -333,8 +359,18 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
         fail("provide one or more installed skills to remove")
 
     dest = Path(args.dest).expanduser()
+    results = []
     for name in args.skills:
-        uninstall_one(name, dest, args.missing_ok)
+        results.append(uninstall_one(name, dest, args.missing_ok))
+
+    if args.json:
+        print(json.dumps(results, indent=2, ensure_ascii=False))
+    else:
+        for result in results:
+            if result["status"] == "already_absent":
+                print(f"{result['name']}: already absent")
+            else:
+                print(f"{result['name']}: removed from {result['target']}")
     return 0
 
 
@@ -381,10 +417,20 @@ def cmd_install_github(args: argparse.Namespace) -> int:
 
     try:
         remote_skills = load_skills_from_root(extracted_root)
+        results = []
         for skill in select_skills(remote_skills, args.skills, args.all):
-            install_one(skill, dest, "copy", args.overwrite)
+            results.append(install_one(skill, dest, "copy", args.overwrite))
     finally:
         shutil.rmtree(extracted_root.parent, ignore_errors=True)
+
+    if args.json:
+        print(json.dumps(results, indent=2, ensure_ascii=False))
+    else:
+        for result in results:
+            if result["status"] == "already_installed":
+                print(f"{result['name']}: already installed")
+            else:
+                print(f"{result['name']}: installed to {result['target']}")
 
     return 0
 
@@ -543,6 +589,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Replace an existing destination if needed",
     )
+    install_parser.add_argument("--json", action="store_true", help="Print machine-readable output")
     install_parser.set_defaults(func=cmd_install)
 
     uninstall_parser = subparsers.add_parser("uninstall", help="Remove one or more installed skills")
@@ -557,6 +604,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Treat missing installed skills as a no-op",
     )
+    uninstall_parser.add_argument("--json", action="store_true", help="Print machine-readable output")
     uninstall_parser.set_defaults(func=cmd_uninstall)
 
     install_github_parser = subparsers.add_parser(
@@ -581,6 +629,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Replace an existing destination if needed",
     )
+    install_github_parser.add_argument("--json", action="store_true", help="Print machine-readable output")
     install_github_parser.set_defaults(func=cmd_install_github)
 
     list_github_parser = subparsers.add_parser(

@@ -114,9 +114,10 @@ class SkillRepoTestCase(unittest.TestCase):
                 skills=["alpha-skill"],
                 dest=dest_dir,
                 missing_ok=False,
+                json=False,
             )
-
-            result = skill_repo.cmd_uninstall(args)
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = skill_repo.cmd_uninstall(args)
 
             self.assertEqual(result, 0)
             self.assertFalse(installed.exists())
@@ -127,9 +128,10 @@ class SkillRepoTestCase(unittest.TestCase):
                 skills=["alpha-skill"],
                 dest=dest_dir,
                 missing_ok=True,
+                json=False,
             )
-
-            result = skill_repo.cmd_uninstall(args)
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = skill_repo.cmd_uninstall(args)
 
             self.assertEqual(result, 0)
 
@@ -154,13 +156,46 @@ class SkillRepoTestCase(unittest.TestCase):
                 skills=["beta-skill"],
                 all=False,
                 overwrite=False,
+                json=False,
             )
-
-            result = skill_repo.cmd_install_github(args)
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = skill_repo.cmd_install_github(args)
 
             self.assertEqual(result, 0)
             self.assertTrue((Path(dest_dir) / "beta-skill" / "SKILL.md").exists())
             self.assertFalse((Path(dest_dir) / "alpha-skill").exists())
+
+    def test_install_github_json_reports_result(self) -> None:
+        temp_root = Path(tempfile.mkdtemp(prefix="skill-remote-"))
+        self._patch_stack.callback(lambda: shutil.rmtree(temp_root, ignore_errors=True))
+        remote_root = temp_root / "my-skills-main"
+        self.make_skill(remote_root, "alpha-skill", "Alpha.")
+
+        original_download = skill_repo.download_and_extract_repo
+        skill_repo.download_and_extract_repo = lambda repo, ref: remote_root
+        self._patch_stack.callback(
+            lambda: setattr(skill_repo, "download_and_extract_repo", original_download)
+        )
+
+        with tempfile.TemporaryDirectory() as dest_dir:
+            args = SimpleNamespace(
+                repo="owner/repo",
+                ref="main",
+                dest=dest_dir,
+                skills=["alpha-skill"],
+                all=False,
+                overwrite=False,
+                json=True,
+            )
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = skill_repo.cmd_install_github(args)
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(result, 0)
+            self.assertEqual(payload[0]["name"], "alpha-skill")
+            self.assertEqual(payload[0]["status"], "installed")
 
     def test_list_github_json_marks_installed_skills(self) -> None:
         temp_root = Path(tempfile.mkdtemp(prefix="skill-remote-"))
@@ -194,6 +229,23 @@ class SkillRepoTestCase(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertFalse(installed["alpha-skill"])
             self.assertTrue(installed["beta-skill"])
+
+    def test_uninstall_json_reports_absent_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as dest_dir:
+            args = SimpleNamespace(
+                skills=["alpha-skill"],
+                dest=dest_dir,
+                missing_ok=True,
+                json=True,
+            )
+            stdout = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout):
+                result = skill_repo.cmd_uninstall(args)
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(result, 0)
+            self.assertEqual(payload[0]["status"], "already_absent")
 
     def test_validate_guard_fails_without_local_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
