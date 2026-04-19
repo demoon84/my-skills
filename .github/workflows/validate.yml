@@ -14,13 +14,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: "20"
 
-      - name: Validate skill metadata and catalog
-        run: python3 scripts/skill_repo.py validate
+      - name: Syntax check
+        run: npm run check
 
-      - name: Run unit tests
-        run: python3 -m unittest discover -s tests -p 'test_*.py'
+      - name: Validate skill metadata
+        run: node scripts/install-skills.mjs validate

@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-04-18T15:39:58.637728+00:00",
+  "generated_at": "2026-04-19T00:00:00+00:00",
   "skills_dir": "skills",
   "skills": [
     {
-      "name": "planwork",
-      "description": "Shape an active coding task through focused user conversation, create a dedicated .workloop planning folder, optionally record a Model Strategy, and hand the task off to workloop when execution intent is clear.",
-      "path": "skills/planwork",
-      "display_name": "planwork",
-      "short_description": "Plan a task through user conversation, optionally add model strategy, then make it ready for workloop.",
-      "default_prompt": "Use $planwork to talk through the task, create a dedicated .workloop planning folder with clear Done When, verification rules, and an optional Model Strategy, then hand it off to $workloop automatically when I clearly want ongoing progress."
+      "name": "autopilot",
+      "description": "Plan a task through conversation into plan.md, then keep the agent from stopping via a Stop hook until every Done When criterion and every todo is checked.",
+      "path": "skills/autopilot",
+      "display_name": "autopilot",
+      "short_description": "Plan into plan.md, then use a Stop hook to keep the agent going until every checkbox is ticked.",
+      "default_prompt": "Use $autopilot to talk through the task into plan.md (goal, scope, done-when, detailed todos). When execution starts, a Stop hook checks plan.md each time the agent tries to stop and forces it to continue as long as unchecked items remain."
     },
     {
       "name": "webp",
@@ -18,14 +18,6 @@
       "display_name": "webp",
       "short_description": "Run webp-maker to create static or animated WebP assets.",
       "default_prompt": "Use $webp to run demoon84/webp-maker for WebP conversion, animated WebP generation, or full pipeline processing."
-    },
-    {
-      "name": "workloop",
-      "description": "Create or update a 1-minute same-thread coding heartbeat that keeps working on an active task in the background. Use when the user wants Codex to continue a refactor, migration, bugfix, or rollout every minute by re-reading planning files, advancing the next highest-priority step, verifying changes, updating progress artifacts, and posting concise status or blockers.",
-      "path": "skills/workloop",
-      "display_name": "workloop",
-      "short_description": "Create a same-thread 1-minute coding loop.",
-      "default_prompt": "Use $workloop to create a 1-minute same-thread coding heartbeat that reuses the active .workloop planning folder, advances the next step, verifies changes, and posts concise status."
     }
   ]
 }

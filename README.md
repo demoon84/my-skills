@@ -1,42 +1,56 @@
 # my-skills
 
-GitHub-managed Codex skills collection for local installation and reuse.
+Canonical skill hub for Claude / Codex / Gemini CLIs (agent-skills format).
+
+The Node installer scans `skills/*`, symlinks each skill into every CLI's skill directory, and writes a single hook manifest per tool so lifecycle hooks declared in `SKILL.md` frontmatter are picked up automatically.
 
 ## Included skills
 
-- `planwork`: talks through a task with the user, creates a dedicated `.workloop` planning folder, and prepares work that can be handed to `workloop`
-- `workloop`: creates or updates a same-thread coding heartbeat with `.workloop/work_<timestamp>/` planning folders and explicit completion rules
-- `webp`: uses `demoon84/webp-maker` to produce static or animated WebP assets
+- `autopilot`: talks through a task into `plan.md` (goal, scope, done-when, detailed todos), then uses a `Stop` hook (`scripts/check-completion.sh`) to re-engage the agent every time it tries to stop while unchecked items remain. Single skill, two modes (Plan / Autopilot).
+- `webp`: wraps `demoon84/webp-maker` to produce static or animated WebP assets.
 
-## Plan with `planwork`, then run `workloop`
+## Quick start
 
-Use `planwork` first when the task still needs a short planning conversation. It should clarify the goal, scope, verification, and `Done When`, then create a fresh task folder like `.workloop/work_<timestamp>_<slug>/`.
+```bash
+git clone https://github.com/demoon84/my-skills.git
+cd my-skills
 
-Once that plan is stable, hand the exact planning files to `workloop` so the same-thread heartbeat keeps moving against the approved plan instead of replanning each wakeup.
+# List discovered skills
+node scripts/install-skills.mjs list
 
-If the conversation already makes execution intent obvious, `planwork` should not wait for a second explicit `$workloop` request. Follow-ups such as `continue`, `go ahead`, `keep going`, `진행`, or `계속` should be enough to trigger the hand-off once the planning files are stable.
+# Validate frontmatter + referenced hook scripts
+node scripts/install-skills.mjs validate
 
-Example flow:
-
-```text
-Use $planwork to talk through this repository task with me, create a dedicated .workloop planning folder, and make the plan stable enough for $workloop.
+# Symlink every skill into ~/.claude/skills, ~/.codex/skills, ~/.gemini/skills
+# and write hook manifests (plugin.json / hooks.json) for each tool
+node scripts/install-skills.mjs install --all
 ```
 
-Then:
+Equivalent npm scripts are declared in `package.json` (`npm run list`, `npm run validate`, `npm run install-all`).
+
+## Using `autopilot`
+
+`autopilot` is the single planning + execution skill in this repo. It replaces the earlier `planwork` / `work-loop` pair by collapsing them into one skill plus a Stop hook.
+
+- **Plan mode** — conversation → `plan.md` at the repo root (or `.workloop/work_<ts>_<slug>/plan.md` for isolation).
+- **Autopilot mode** — whenever the agent tries to end a turn, `scripts/check-completion.sh` reads `plan.md`; if any item in `## Done When` or `## Todos` is still `[ ]`, it emits `{"decision": "block"}` so the agent is forced to continue. When everything is `[x]`, the hook renames `plan.md` → `plan.done.md` and allows the stop.
+
+Example prompts:
 
 ```text
-Use $workloop to create a 1-minute same-thread coding heartbeat that re-reads .workloop/work_<timestamp>_<slug>/task_plan.md, .workloop/work_<timestamp>_<slug>/findings.md, and .workloop/work_<timestamp>_<slug>/progress.md, keeps changes limited to this repo, verifies relevant checks after code changes, and stops only when the Done When criteria are satisfied or a real blocker requires input.
+$autopilot: 로그인 에러 메시지 개선. 계획부터 잡자.   # Plan mode
+$autopilot: 진행해                                       # Autopilot loop until done
+$autopilot: status                                       # Report progress from plan.md
+$autopilot: stop                                         # Disable the hook, keep plan.md
 ```
+
+See [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md) for the full behavior spec, `plan.md` template, and guardrails.
 
 ## Optional `Model Strategy`
 
-`planwork` can also record a simple `Model Strategy` section when the user wants guidance on which Codex model fits which subtask.
+`plan.md` has an optional `## Model Strategy` section for recording which model fits which subtask. It is planning metadata only; `autopilot` does not turn it into an automatic routing harness.
 
-This repository treats that section as planning metadata only. It is useful for recommendations like "use a deeper model for architecture work and a faster model for narrow cleanup," but it does not turn `planwork` or `workloop` into an automatic routing harness.
-
-Example:
-
-```text
+```markdown
 ## Model Strategy
 - Task: architecture-heavy refactor
   preferred_model: gpt-5.3-codex
@@ -47,103 +61,59 @@ Example:
   why: faster narrow iteration
 ```
 
-## Install from a local clone
+## Installer commands
 
 ```bash
-git clone https://github.com/demoon84/my-skills.git
-cd my-skills
-python3 scripts/skill_repo.py install workloop --mode link
-python3 scripts/skill_repo.py install planwork --mode link
-python3 scripts/skill_repo.py install webp --mode link
+# List skills discovered under skills/
+node scripts/install-skills.mjs list
+
+# Show current install state per tool
+node scripts/install-skills.mjs status
+node scripts/install-skills.mjs status autopilot
+
+# Validate a single skill or all
+node scripts/install-skills.mjs validate
+node scripts/install-skills.mjs validate autopilot
+
+# Install one skill or everything (symlink by default)
+node scripts/install-skills.mjs install autopilot
+node scripts/install-skills.mjs install --all
+
+# Copy instead of symlink
+node scripts/install-skills.mjs install --all --copy
+
+# Install into project scope (.claude/skills, .agents/skills) instead of ~/
+node scripts/install-skills.mjs install --all --project
+
+# Preview without writing
+node scripts/install-skills.mjs install --all --dry-run
+
+# Limit to specific tools
+node scripts/install-skills.mjs install --all --tools claude,codex
+
+# Remove symlinks for a skill
+node scripts/install-skills.mjs uninstall autopilot
 ```
 
-Install every skill from the clone:
+## Authoring a new skill
 
 ```bash
-python3 scripts/skill_repo.py install --all --mode link
+# Scaffold from skills/_template
+node scripts/scaffold-skill.mjs my-skill
+
+# Edit skills/my-skill/SKILL.md, then validate + install
+node scripts/install-skills.mjs validate my-skill
+node scripts/install-skills.mjs install my-skill
 ```
 
-Remove an installed skill:
-
-```bash
-python3 scripts/skill_repo.py uninstall workloop
-```
-
-Print install or uninstall results as JSON:
-
-```bash
-python3 scripts/skill_repo.py install workloop --mode link --json
-python3 scripts/skill_repo.py uninstall workloop --json
-```
-
-## Install directly from GitHub
-
-List what is available from the published repo:
-
-```bash
-python3 scripts/skill_repo.py list-github demoon84/my-skills
-```
-
-If you already have this repository checked out somewhere, you can use its helper script to install a copy from GitHub:
-
-```bash
-python3 scripts/skill_repo.py install-github demoon84/my-skills workloop
-python3 scripts/skill_repo.py install-github demoon84/my-skills planwork
-python3 scripts/skill_repo.py install-github demoon84/my-skills webp
-```
-
-Install every skill from the published repo:
-
-```bash
-python3 scripts/skill_repo.py install-github demoon84/my-skills --all
-```
-
-Use a different branch or tag:
-
-```bash
-python3 scripts/skill_repo.py install-github demoon84/my-skills workloop --ref main
-```
-
-Run the helper script directly from GitHub without cloning first:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/demoon84/my-skills/main/scripts/skill_repo.py | python3 - list-github demoon84/my-skills
-curl -fsSL https://raw.githubusercontent.com/demoon84/my-skills/main/scripts/skill_repo.py | python3 - install-github demoon84/my-skills workloop
-```
-
-## Repository commands
-
-List skills:
-
-```bash
-python3 scripts/skill_repo.py list
-```
-
-Create a new skill skeleton:
-
-```bash
-python3 scripts/skill_repo.py init my-skill --description "Describe the trigger clearly."
-```
-
-Refresh the generated catalog:
-
-```bash
-python3 scripts/skill_repo.py refresh-catalog
-```
-
-Validate the repository metadata:
-
-```bash
-python3 scripts/skill_repo.py validate
-```
-
-Run the unit tests:
-
-```bash
-python3 -m unittest discover -s tests -p 'test_*.py'
-```
+`skills/_template/SKILL.md` shows the full frontmatter (name / description / targets / hooks / metadata). See [docs/authoring.md](docs/authoring.md) for the AI-assisted authoring flow and [skills/README.md](skills/README.md) for folder conventions.
 
 ## CI
 
-GitHub Actions runs `python3 scripts/skill_repo.py validate` on pushes to `main` and on pull requests so metadata drift is caught before release.
-It also runs `python3 -m unittest discover -s tests -p 'test_*.py'`.
+`.github/workflows/validate.yml` runs `node scripts/install-skills.mjs validate` and `npm run check` on pushes to `main` and pull requests so metadata drift and syntax errors are caught before release.
+
+## Per-tool setup notes
+
+- Claude: [docs/claude.md](docs/claude.md)
+- Codex: [docs/codex.md](docs/codex.md)
+- Gemini: [docs/gemini.md](docs/gemini.md)

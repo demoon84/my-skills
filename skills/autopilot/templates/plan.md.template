@@ -1,0 +1,49 @@
+# Plan: <Title>
+
+## Confirmed Decisions
+1.
+
+## Assumed Defaults
+-
+
+## Goal
+<한 문장 — 끝났을 때 사용자가 볼 수 있는 변화 + 왜 지금 필요>
+
+## Scope
+- Allowed:
+- Out of Scope:
+
+## Done When
+- [ ] <사용자 관점 완료 기준>
+- [ ] <사용자 관점 완료 기준>
+
+## Verification
+- `<검증 명령>`
+- `<검증 명령>`
+
+## Risks & Mitigations
+| Risk | Mitigation |
+|---|---|
+|  |  |
+
+## Todos
+
+<!-- 작은 작업은 flat list, 큰 작업은 Phase A/B/C 블록 -->
+
+- [ ]
+
+## Next Action
+> <현재 진행할 unchecked todo 1줄>
+
+## Progress Log
+<!-- autopilot appends lines here: `YYYY-MM-DD HH:MM — <summary>` -->
+
+## Open Decisions
+<!-- user가 결정해야 하거나 blocker 기록 -->
+
+## Model Strategy (optional)
+<!-- 예:
+- Task: repo-wide refactor
+  preferred_model: gpt-5.3-codex
+  why: cross-file reasoning
+-->

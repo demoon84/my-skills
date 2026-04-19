@@ -1,0 +1,34 @@
+{
+  "name": "myskills",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Canonical skill hub for Claude / Codex / Gemini CLIs (agent-skills format).",
+  "keywords": [
+    "agent-skills",
+    "claude",
+    "codex",
+    "gemini",
+    "skills"
+  ],
+  "bin": {
+    "myskills": "scripts/install-skills.mjs"
+  },
+  "scripts": {
+    "check": "node --check config.mjs && node --check lib/skills.mjs && node --check lib/skills-install.mjs && node --check scripts/install-skills.mjs && node --check scripts/scaffold-skill.mjs && node --check scripts/validate-skills.mjs",
+    "list": "node scripts/install-skills.mjs list",
+    "validate": "node scripts/install-skills.mjs validate",
+    "install-all": "node scripts/install-skills.mjs install --all"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "config.mjs",
+    "lib",
+    "scripts",
+    "skills",
+    "docs",
+    "README.md",
+    "AGENTS.md"
+  ]
+}
