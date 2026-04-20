@@ -21,6 +21,8 @@ If unchecked items remain, the hook returns a block response and Codex continues
 
 No Codex automations needed. The loop is driven by Codex's Stop hook.
 
+For readability on Codex desktop, plan review should be its own stopping point. Show the full plan, ask for the numbered choice, then end the turn immediately. After the plan is approved and saved, execution should begin only on the next explicit `진행` / `continue` message so the review content stays expanded long enough for the user to read it.
+
 On current Codex releases, Windows hook support may still lag behind macOS/Linux. When native Windows hooks are unavailable, the recommended fallback is to run Codex inside WSL2 while keeping the same `autopilot` skill.
 
 ## Windows: native vs WSL2

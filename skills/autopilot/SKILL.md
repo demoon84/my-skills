@@ -10,6 +10,8 @@ hooks:
 
 A single skill with two modes. Its core purpose is to **keep the agent moving toward the Goal until every `Done When` criterion is satisfied**: whenever the agent tries to finish a turn, a `Stop` hook checks `plan.md` and, if any `Done When` criterion or todo is still unchecked, tells the agent to keep working.
 
+The desktop UX constraint matters too: when the agent presents a plan, review, or choice block, that content must remain readable on screen. Do not auto-transition from "showing the user something to read" into "doing more hidden work" in the same turn.
+
 - **Plan mode**: conversation → `plan.md` (goal + scope + done-when + detailed todos)
 - **Autopilot mode**: Stop hook guard → whenever the agent would stop, re-engage it until every checkbox in `## Done When` and `## Todos` is `[x]`
 
@@ -53,9 +55,18 @@ Aim for **2-5 substantive exchanges**. Hard cap: 6.
 3. **Reflect-and-confirm** — after every meaningful answer, echo one line before moving on.
 4. **Todo draft** — once Goal / Scope / Done When are captured, propose a todo draft.
 5. **Plan review** — present the full `plan.md` inline and ask for approval.
-6. **Transition** — on approval, save the file. On a momentum phrase (`진행`, `계속`, `continue`, `go ahead`), save AND proceed to execute the first unchecked todo immediately.
+6. **Transition** — on approval, save the file and stop so the saved plan stays visible. Start Autopilot execution only on a later explicit momentum phrase (`진행`, `계속`, `continue`, `go ahead`).
 
 Never skip to the draft on the first turn. Always produce at least one reflect-and-confirm exchange.
+
+### Readability guardrail
+
+When the user needs to read or choose:
+
+- Make the approval or choice block the **last visible content** of the turn.
+- Do **not** start execution, call extra tools, or emit extra progress chatter after that block unless the user's same message already authorized that exact next step.
+- If the plan was just approved and saved, end with a short confirmation such as `저장했습니다. 진행하려면 '진행'이라고 입력해주세요.` and stop there.
+- Treat this as mandatory for Codex desktop so the reply does not collapse into a compact "worked N seconds" summary before the user has read it.
 
 ### Choice prompt format
 
@@ -71,6 +82,7 @@ Rules:
 - Use this format whenever the user is choosing among known paths, approvals, execution modes, or revisions.
 - Do **not** use this format for open-ended discovery questions where the user must describe the Goal / Scope / Done When in their own words.
 - Put the choice list in the main user-facing reply, not in a progress/update line.
+- After a choice list, end the turn immediately unless the user already supplied the choice in the same message.
 - When the user picks `4. 기타`, immediately ask for a short free-form reply such as: `원하시는 내용을 짧게 적어주세요.`
 - Keep each option label short enough that the user can answer with just `1`, `2`, `3`, or `4`.
 
@@ -138,13 +150,15 @@ Before writing `plan.md`:
 
 1. Present the **complete** `plan.md` inline (not just a summary).
 2. Ask using the choice prompt format:
-   `1. 이대로 저장하고 진행`
-   `2. 이대로 저장만`
+   `1. 이대로 저장`
+   `2. 저장 후 다음 턴에 진행`
    `3. 한 번 수정`
    `4. 기타`
 3. Accept at most **ONE** round of revisions here. Further revisions require re-entering Plan mode.
-4. Write the file.
-5. If the user signals execution intent, proceed to handle the first unchecked todo immediately. The Stop hook takes over from there.
+4. The approval prompt must be the final visible content of the turn. Do not auto-enter execution after showing it.
+5. Write the file only after the user chooses `1` or `2`.
+6. After saving, end with a short confirmation and stop.
+7. Start executing todos only when the user sends a separate momentum message such as `진행` or `continue`. The Stop hook takes over from there.
 
 ### plan.md location
 
@@ -343,7 +357,7 @@ If the user replies `4`, follow immediately with:
 
 When reviewing the final plan draft:
 
-1. 이대로 저장하고 진행
-2. 이대로 저장만
+1. 이대로 저장
+2. 저장 후 다음 턴에 진행
 3. 한 번 수정
 4. 기타

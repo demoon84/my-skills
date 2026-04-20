@@ -35,6 +35,8 @@ Equivalent npm scripts are declared in `package.json` (`npm run list`, `npm run 
 - **Plan mode** — conversation → `plan.md` at the repo root (or `.workloop/work_<ts>_<slug>/plan.md` for isolation).
 - **Autopilot mode** — whenever the agent tries to end a turn, the installed `check-completion` hook script reads `plan.md`; if any item in `## Done When` or `## Todos` is still `[ ]`, it emits `{"decision": "block"}` so the agent is forced to continue. When everything is `[x]`, the hook renames `plan.md` → `plan.done.md` and allows the stop.
 
+For readability on Codex desktop, plan review should be a dedicated stopping point: show the full plan, ask for the numbered choice, then end the turn immediately. After the user approves and the plan is saved, execution should begin only on the next explicit `진행` / `continue` message so the review content does not collapse before they read it.
+
 Example prompts:
 
 ```text
