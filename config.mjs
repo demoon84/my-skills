@@ -4,34 +4,30 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const homeDir = os.homedir();
+const DEFAULT_TARGETS = ["codex"];
 
 function parseTargetsEnv(value) {
   if (!value || typeof value !== "string") {
-    return ["claude", "codex", "gemini"];
+    return [...DEFAULT_TARGETS];
   }
-  return value
+  const targets = value
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean);
+    .filter((entry) => DEFAULT_TARGETS.includes(entry));
+  return targets.length ? targets : [...DEFAULT_TARGETS];
 }
 
 export const skillsConfig = {
   sourceDir: process.env.MYSKILLS_SOURCE_DIR || path.join(repoRoot, "skills"),
   targets: parseTargetsEnv(process.env.MYSKILLS_TARGETS),
   globalDirs: {
-    claude: path.join(homeDir, ".claude", "skills"),
-    codex: path.join(homeDir, ".codex", "skills"),
-    gemini: path.join(homeDir, ".gemini", "skills")
+    codex: path.join(homeDir, ".codex", "skills")
   },
   projectDirs: {
-    claude: path.join(".claude", "skills"),
-    codex: path.join(".agents", "skills"),
-    gemini: path.join(".agents", "skills")
+    codex: path.join(".agents", "skills")
   },
   manifestTargets: {
-    claude: path.join(homeDir, ".claude", "plugins", "myskills", "plugin.json"),
-    codex: path.join(homeDir, ".codex", "hooks.json"),
-    gemini: path.join(homeDir, ".gemini", "hooks.json")
+    codex: path.join(homeDir, ".codex", "hooks.json")
   }
 };
 

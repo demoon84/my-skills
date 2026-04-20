@@ -2,12 +2,10 @@
   "name": "myskills",
   "version": "0.2.0",
   "type": "module",
-  "description": "Canonical skill hub for Claude / Codex / Gemini CLIs (agent-skills format).",
+  "description": "Canonical Codex skill hub for agent-skills format repositories.",
   "keywords": [
     "agent-skills",
-    "claude",
     "codex",
-    "gemini",
     "skills"
   ],
   "bin": {

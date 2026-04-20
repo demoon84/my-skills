@@ -1,7 +1,7 @@
 ---
 name: autopilot
 description: "Plan a task through conversation into plan.md, then keep the agent from stopping via a Stop hook until every Done When criterion and every todo is checked."
-targets: [claude, codex, gemini]
+targets: [codex]
 hooks:
   stop: scripts/check-completion.sh
 ---
@@ -15,6 +15,13 @@ A single skill with two modes. Its core purpose is to **keep the agent moving to
 
 `plan.md` is the single source of truth. Do not fragment it into `task_plan.md` / `findings.md` / `progress.md`.
 
+### Platform behavior
+
+- On macOS / Linux, the installer registers `scripts/check-completion.sh`.
+- On Windows, the installer registers `scripts/check-completion.ps1`.
+- Inside WSL2, treat the environment as Linux and install the skill from within the distro so Codex registers `scripts/check-completion.sh` in the WSL home.
+- The planning contract and `plan.md` behavior stay the same across platforms; only the hook runner changes.
+
 ### Reward model: Goal over Plan
 
 The reward signal is **Goal completion**, not strict adherence to the original todo list. `plan.md` is split into a locked **Contract** (Goal / Done When / Scope / Verification — the user's agreement) and an adaptive **Execution layer** (Todos / Next Action / Progress Log / Open Decisions — the agent's workspace). The agent may revise Todos mid-flight when reality requires it, as long as the Contract holds and every change is logged. See "plan.md specification" below for the exact rules.
@@ -27,8 +34,8 @@ At the start of each invocation, pick one mode:
 |---|---|---|
 | `plan.md` missing | any task request | **Plan** |
 | `plan.md` exists, unchecked items remain | `진행` / `계속` / `continue` / `go ahead` / `autopilot` | **Autopilot** |
-| `plan.md` exists, unchecked items remain | new task description | Ask once: "기존 plan 이어갈까요, 새로 짤까요?" |
-| `plan.md` exists, all checked | any task request | Ask once: "완료된 plan 있음. 새로 짤까요?" |
+| `plan.md` exists, unchecked items remain | new task description | Ask once using the choice prompt format: `1. 기존 plan 이어가기 2. 새로 짜기 3. 상태 보기 4. 기타` |
+| `plan.md` exists, all checked | any task request | Ask once using the choice prompt format: `1. 새 plan 짜기 2. 완료된 plan 보기 3. 그대로 두기 4. 기타` |
 | User explicitly says `계획만` / `plan only` | — | **Plan**, keep the hook disarmed by skipping the transition |
 | User says `stop` / `멈춰` / `pause` | — | Disable the hook (temporarily) and leave `plan.md` untouched |
 | User says `status` / `상태` | — | Report progress from `plan.md` (no edits, no hook action) |
@@ -49,6 +56,23 @@ Aim for **2-5 substantive exchanges**. Hard cap: 6.
 6. **Transition** — on approval, save the file. On a momentum phrase (`진행`, `계속`, `continue`, `go ahead`), save AND proceed to execute the first unchecked todo immediately.
 
 Never skip to the draft on the first turn. Always produce at least one reflect-and-confirm exchange.
+
+### Choice prompt format
+
+For every **selection-type question** in `$autopilot`, the agent must present exactly four options:
+
+1. `<recommended / most likely path>`
+2. `<second path>`
+3. `<third path>`
+4. `기타`
+
+Rules:
+
+- Use this format whenever the user is choosing among known paths, approvals, execution modes, or revisions.
+- Do **not** use this format for open-ended discovery questions where the user must describe the Goal / Scope / Done When in their own words.
+- Put the choice list in the main user-facing reply, not in a progress/update line.
+- When the user picks `4. 기타`, immediately ask for a short free-form reply such as: `원하시는 내용을 짧게 적어주세요.`
+- Keep each option label short enough that the user can answer with just `1`, `2`, `3`, or `4`.
 
 ### Question bank per planning fact
 
@@ -81,7 +105,11 @@ Pick the one that surfaces the most unknowns. Do not rattle through all of them.
 
 After each meaningful answer:
 
-> "확인: <한 줄 요약>. 이대로 진행할게요, 수정할 부분 있나요?"
+> "확인: <한 줄 요약>."
+> "1. 맞아요, 계속"
+> "2. 조금 수정"
+> "3. 다시 질문"
+> "4. 기타"
 
 Skip the echo only when the answer is trivially unambiguous (one-word yes/no, a concrete path).
 
@@ -96,7 +124,7 @@ Every todo in `## Todos` must be:
 
 | ❌ Bad | ✅ Good |
 |---|---|
-| "Claude 수정" | "`src/providers/claude.js`의 `createCompletion`이 `permissionMode`, `addDir` 파라미터 수용" |
+| "수정" | "`src/providers/codex.js`의 `createCompletion`이 `sandbox`, `addDir` 파라미터 수용" |
 | "검증" | "`npm run check` 실행 및 통과 확인" |
 | "깔끔하게 정리" | "`src/lib/skills-install.js` 150자 이상 함수 3개를 분리" |
 
@@ -109,7 +137,11 @@ Phase grouping is **optional**:
 Before writing `plan.md`:
 
 1. Present the **complete** `plan.md` inline (not just a summary).
-2. Ask: "이대로 `./plan.md`에 저장할게요. 고칠 부분?"
+2. Ask using the choice prompt format:
+   `1. 이대로 저장하고 진행`
+   `2. 이대로 저장만`
+   `3. 한 번 수정`
+   `4. 기타`
 3. Accept at most **ONE** round of revisions here. Further revisions require re-entering Plan mode.
 4. Write the file.
 5. If the user signals execution intent, proceed to handle the first unchecked todo immediately. The Stop hook takes over from there.
@@ -236,7 +268,7 @@ When the agent tries to stop:
 - If every `## Done When` entry is `[x]` AND every `## Todos` entry is `[x]` → allow stop. The hook additionally renames `plan.md` → `plan.done.md`.
 - Otherwise → emit `{"hookSpecificOutput": {"hookEventName": "Stop", "decision": "block", "reason": "<n> unchecked items remain. Continue with the next todo."}}` so the agent is forced to continue.
 
-This is implemented in `scripts/check-completion.sh` and auto-registered because this skill declares `hooks.stop` in frontmatter.
+This is implemented in `scripts/check-completion.sh` with a Windows PowerShell counterpart at `scripts/check-completion.ps1`, and auto-registered because this skill declares `hooks.stop` in frontmatter.
 
 ### Autopilot guardrails
 
@@ -272,7 +304,11 @@ After `plan.md` is written in Plan mode:
 
 - **Start executing** when the user says `진행` / `계속` / `continue` / `go ahead` / `autopilot`. The agent processes the first unchecked todo; the Stop hook handles everything after.
 - **Do not execute** when the user says `계획만` / `plan only` / `지금은 멈춰` / explicit `stop`.
-- If signal is ambiguous, ask exactly once: "지금 바로 실행 시작할까요?"
+- If signal is ambiguous, ask exactly once using the choice prompt format:
+  `1. 지금 바로 실행`
+  `2. 계획만 저장`
+  `3. 상태만 보기`
+  `4. 기타`
 
 ## Guardrails
 
@@ -282,7 +318,7 @@ After `plan.md` is written in Plan mode:
 - Execution sections (`## Todos`, `## Next Action`, `## Progress Log`, `## Open Decisions`) are agent-owned; every Todos mutation must carry a Progress Log justification in the same turn.
 - Preserve `plan.md` section order. Do not rename or drop sections.
 - Never delete `plan.md` automatically. On completion, the hook renames it to `plan.done.md`.
-- Do not create cron jobs, Claude Routines, Codex automations, or external schedulers. Autopilot runs via the Stop hook, nothing else.
+- Do not create Codex automations or external schedulers. Autopilot runs via the Stop hook, nothing else.
 
 ## Example prompts
 
@@ -291,3 +327,23 @@ After `plan.md` is written in Plan mode:
 - `$autopilot: 계획만` → Plan mode, no execution
 - `$autopilot: stop` → disable the hook, keep `plan.md`
 - `$autopilot: status` → print progress from `plan.md`
+
+### Example choice prompts
+
+When continuing vs replacing an existing plan:
+
+1. 기존 plan 이어가기
+2. 새로 짜기
+3. 상태 보기
+4. 기타
+
+If the user replies `4`, follow immediately with:
+
+`원하시는 방향을 짧게 적어주세요.`
+
+When reviewing the final plan draft:
+
+1. 이대로 저장하고 진행
+2. 이대로 저장만
+3. 한 번 수정
+4. 기타

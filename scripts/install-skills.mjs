@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { createConfig } from "../config.mjs";
 import {
+  allowedTargets,
   getInstallState,
   scanSkillsDir,
   validateSkill
 } from "../lib/skills.mjs";
-import { installSkill, uninstallSkill, writeManifests, installAll } from "../lib/skills-install.mjs";
+import { installSkill, uninstallSkill, writeManifests } from "../lib/skills-install.mjs";
 
 function parseArgs(argv) {
   const args = {
@@ -64,8 +68,8 @@ Commands:
   validate [name]              Validate skill frontmatter + files
 
 Options:
-  --tools claude,codex,gemini  Filter target tools
-  --project                    Install into project scope (.claude/skills, .agents/skills)
+  --tools codex                Filter target tools (Codex only)
+  --project                    Install into project scope (.agents/skills)
   --copy                       Copy files instead of symlinking
   --force                      Overwrite existing entries
   --dry-run                    Show what would happen without writing
@@ -75,9 +79,10 @@ Options:
 function buildConfig(tools) {
   const config = createConfig();
   if (tools) {
+    const supportedTargets = allowedTargets();
     config.skills = {
       ...config.skills,
-      targets: tools
+      targets: tools.filter((tool) => supportedTargets.includes(tool))
     };
   }
   return config;
@@ -258,7 +263,16 @@ export function runSkillsCli(argv = process.argv.slice(2)) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isDirectExecution() {
+  const entryPath = process.argv[1];
+  if (!entryPath) {
+    return false;
+  }
+
+  return path.resolve(fileURLToPath(import.meta.url)) === path.resolve(entryPath);
+}
+
+if (isDirectExecution()) {
   const code = runSkillsCli();
   process.exit(code);
 }

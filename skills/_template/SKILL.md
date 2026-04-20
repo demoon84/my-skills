@@ -1,7 +1,7 @@
 ---
 name: __SKILL_NAME__
 description: Short one-line description of what the skill does.
-targets: [claude, codex, gemini]
+targets: [codex]
 # hooks:
 #   session_start: scripts/init.sh
 #   stop: scripts/finish.sh

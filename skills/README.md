@@ -1,8 +1,8 @@
 # Skills
 
-This directory is the canonical source for skills distributed to Claude, Codex, and Gemini.
+This directory is the canonical source for skills distributed to Codex.
 
-Each subdirectory is one skill. The installer scans `skills/*` and fans out to each CLI's native skill directory via symlink (or copy with `--copy`).
+Each subdirectory is one skill. The installer scans `skills/*` and links them into Codex's native skill directory via symlink (or copy with `--copy`).
 
 ## Adding a new skill
 
@@ -26,7 +26,7 @@ node scripts/install-skills.mjs install my-skill
 ---
 name: my-skill                      # required, must match folder name
 description: What the skill does.   # required
-targets: [claude, codex, gemini]    # optional, default: all three
+targets: [codex]                    # optional, default: codex
 hooks:                              # optional
   session_start: scripts/init.sh
   stop: scripts/finish.sh
@@ -44,7 +44,7 @@ metadata:                           # optional, free-form
 - `description` — one-line summary used by skill-selection heuristics
 
 ### Optional fields
-- `targets` — which tools to install this skill for. Default: `[claude, codex, gemini]`.
+- `targets` — which tools to install this skill for. Default: `[codex]`.
 - `hooks` — lifecycle hooks. Keys must be one of `session_start`, `stop`, `pre_tool_use`, `post_tool_use`. Values are paths (relative to the skill folder) to shell scripts.
 - `metadata` — free-form tags, categories, etc.
 
@@ -62,16 +62,14 @@ skills/my-skill/
 
 Running `node scripts/install-skills.mjs install my-skill` creates symlinks at:
 
-| Tool   | Global path                       | Project path (`--project`)   |
-|--------|-----------------------------------|------------------------------|
-| Claude | `~/.claude/skills/my-skill`       | `.claude/skills/my-skill`    |
-| Codex  | `~/.codex/skills/my-skill`        | `.agents/skills/my-skill`    |
-| Gemini | `~/.gemini/skills/my-skill`       | `.agents/skills/my-skill`    |
+| Tool  | Global path                | Project path (`--project`) |
+|-------|----------------------------|----------------------------|
+| Codex | `~/.codex/skills/my-skill` | `.agents/skills/my-skill`  |
 
 Hook bindings are additionally written into each tool's manifest (auto-generated). See `docs/authoring.md` for the AI-assisted creation flow.
 
 ## Conventions
 
 - Folder names use `kebab-case`.
-- Do not hand-edit the `.claude-plugin/`, `.codex/`, `.gemini/` directories at the repo root — the installer regenerates those files from this directory.
+- Do not hand-edit the `.codex/` directory at the repo root — the installer regenerates its files from this directory.
 - Directories starting with `_` (like `_template`) or `.` are ignored by the scanner.

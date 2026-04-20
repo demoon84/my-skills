@@ -9,7 +9,7 @@
       "path": "skills/autopilot",
       "display_name": "autopilot",
       "short_description": "Plan into plan.md, then use a Stop hook to keep the agent going until every checkbox is ticked.",
-      "default_prompt": "Use $autopilot to talk through the task into plan.md (goal, scope, done-when, detailed todos). When execution starts, a Stop hook checks plan.md each time the agent tries to stop and forces it to continue as long as unchecked items remain."
+      "default_prompt": "Use $autopilot in Codex to talk through the task into plan.md (goal, scope, done-when, detailed todos). When execution starts, a Stop hook checks plan.md each time the agent tries to stop and forces it to continue as long as unchecked items remain."
     },
     {
       "name": "webp",

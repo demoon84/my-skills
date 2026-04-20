@@ -6,5 +6,5 @@
 - Do not put extra docs inside a skill folder unless they are directly used by the skill, such as `references/`, `scripts/`, or `assets/`.
 - Use `node scripts/scaffold-skill.mjs <name>` to scaffold a new skill from `skills/_template` instead of hand-rolling the folder structure.
 - Use `node scripts/install-skills.mjs validate` after adding or updating skill metadata.
-- Use `node scripts/install-skills.mjs install <skill-name>` to symlink a repo-managed skill into `~/.claude/skills`, `~/.codex/skills`, and `~/.gemini/skills` (add `--tools <name>` to limit targets).
+- Use `node scripts/install-skills.mjs install <skill-name>` to symlink a repo-managed skill into `~/.codex/skills`.
 - Keep `catalog.json` in sync with `skills/` when the skill set changes (add/remove entries, update descriptions). It is a hand-maintained public manifest.

@@ -11,9 +11,8 @@
 #
 # The hook communicates via JSON on stdout. Empty output means "allow stop".
 #
-# Works across Claude / Codex / Gemini because all three use the same
-# `{"hookSpecificOutput": {"hookEventName": "Stop", "decision": "block", "reason": "..."}}`
-# contract for the Stop hook.
+# This skill is installed for Codex only. The hook emits the Codex-compatible
+# Stop-hook block payload on stdout when work remains.
 
 set -euo pipefail
 
@@ -25,9 +24,7 @@ find_plan() {
   fi
 
   local candidates=(
-    "${CLAUDE_PROJECT_DIR:-}/plan.md"
     "${CODEX_PROJECT_DIR:-}/plan.md"
-    "${GEMINI_PROJECT_DIR:-}/plan.md"
     "$PWD/plan.md"
   )
   for c in "${candidates[@]}"; do

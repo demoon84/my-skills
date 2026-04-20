@@ -1,12 +1,12 @@
 # my-skills
 
-Canonical skill hub for Claude / Codex / Gemini CLIs (agent-skills format).
+Canonical Codex skill hub for agent-skills format repositories.
 
-The Node installer scans `skills/*`, symlinks each skill into every CLI's skill directory, and writes a single hook manifest per tool so lifecycle hooks declared in `SKILL.md` frontmatter are picked up automatically.
+The Node installer scans `skills/*`, links each skill into Codex's skill directory, and writes the Codex hook manifest so lifecycle hooks declared in `SKILL.md` frontmatter are picked up automatically.
 
 ## Included skills
 
-- `autopilot`: talks through a task into `plan.md` (goal, scope, done-when, detailed todos), then uses a `Stop` hook (`scripts/check-completion.sh`) to re-engage the agent every time it tries to stop while unchecked items remain. Single skill, two modes (Plan / Autopilot).
+- `autopilot` (Codex only): talks through a task into `plan.md` (goal, scope, done-when, detailed todos), then uses a platform-specific `Stop` hook (`scripts/check-completion.sh` on macOS/Linux, `scripts/check-completion.ps1` on Windows) to re-engage the agent every time it tries to stop while unchecked items remain. Single skill, two modes (Plan / Autopilot).
 - `webp`: wraps `demoon84/webp-maker` to produce static or animated WebP assets.
 
 ## Quick start
@@ -21,8 +21,8 @@ node scripts/install-skills.mjs list
 # Validate frontmatter + referenced hook scripts
 node scripts/install-skills.mjs validate
 
-# Symlink every skill into ~/.claude/skills, ~/.codex/skills, ~/.gemini/skills
-# and write hook manifests (plugin.json / hooks.json) for each tool
+# Install every discovered skill into the Codex skill directory
+# and write the Codex hook manifest
 node scripts/install-skills.mjs install --all
 ```
 
@@ -30,10 +30,10 @@ Equivalent npm scripts are declared in `package.json` (`npm run list`, `npm run 
 
 ## Using `autopilot`
 
-`autopilot` is the single planning + execution skill in this repo. It replaces the earlier `planwork` / `work-loop` pair by collapsing them into one skill plus a Stop hook.
+`autopilot` is the Codex-only planning + execution skill in this repo. It replaces the earlier `planwork` / `work-loop` pair by collapsing them into one skill plus a Stop hook.
 
 - **Plan mode** — conversation → `plan.md` at the repo root (or `.workloop/work_<ts>_<slug>/plan.md` for isolation).
-- **Autopilot mode** — whenever the agent tries to end a turn, `scripts/check-completion.sh` reads `plan.md`; if any item in `## Done When` or `## Todos` is still `[ ]`, it emits `{"decision": "block"}` so the agent is forced to continue. When everything is `[x]`, the hook renames `plan.md` → `plan.done.md` and allows the stop.
+- **Autopilot mode** — whenever the agent tries to end a turn, the installed `check-completion` hook script reads `plan.md`; if any item in `## Done When` or `## Todos` is still `[ ]`, it emits `{"decision": "block"}` so the agent is forced to continue. When everything is `[x]`, the hook renames `plan.md` → `plan.done.md` and allows the stop.
 
 Example prompts:
 
@@ -44,7 +44,7 @@ $autopilot: status                                       # Report progress from 
 $autopilot: stop                                         # Disable the hook, keep plan.md
 ```
 
-See [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md) for the full behavior spec, `plan.md` template, and guardrails.
+See [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md) for the full behavior spec, `plan.md` template, and guardrails. On Windows, the installer writes a PowerShell hook command; on macOS/Linux, it writes the shell-script command.
 
 ## Optional `Model Strategy`
 
@@ -67,7 +67,7 @@ See [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md) for the full behavior
 # List skills discovered under skills/
 node scripts/install-skills.mjs list
 
-# Show current install state per tool
+# Show current install state
 node scripts/install-skills.mjs status
 node scripts/install-skills.mjs status autopilot
 
@@ -82,14 +82,14 @@ node scripts/install-skills.mjs install --all
 # Copy instead of symlink
 node scripts/install-skills.mjs install --all --copy
 
-# Install into project scope (.claude/skills, .agents/skills) instead of ~/
+# Install into project scope (.agents/skills) instead of ~/
 node scripts/install-skills.mjs install --all --project
 
 # Preview without writing
 node scripts/install-skills.mjs install --all --dry-run
 
-# Limit to specific tools
-node scripts/install-skills.mjs install --all --tools claude,codex
+# Limit explicitly to the supported tool
+node scripts/install-skills.mjs install --all --tools codex
 
 # Remove symlinks for a skill
 node scripts/install-skills.mjs uninstall autopilot
@@ -112,8 +112,6 @@ node scripts/install-skills.mjs install my-skill
 
 `.github/workflows/validate.yml` runs `node scripts/install-skills.mjs validate` and `npm run check` on pushes to `main` and pull requests so metadata drift and syntax errors are caught before release.
 
-## Per-tool setup notes
+## Setup notes
 
-- Claude: [docs/claude.md](docs/claude.md)
 - Codex: [docs/codex.md](docs/codex.md)
-- Gemini: [docs/gemini.md](docs/gemini.md)
