@@ -12,14 +12,30 @@ Hooks are written to `~/.codex/hooks.json`. The file is marked `"$marker": "mysk
 
 ## Stop hook (autopilot)
 
-When the `autopilot` skill is installed, its `Stop` hook is registered automatically. Every time Codex finishes a turn, the hook runs the platform-appropriate `check-completion` script against `plan.md`:
+When the `autopilot` skill is installed, its `Stop` hook is registered automatically. Every time Codex finishes a turn, the hook runs the platform-appropriate `check-completion` script against the active run plan:
 
 - macOS / Linux: `check-completion.sh`
 - Windows: `check-completion.ps1`
 
 If unchecked items remain, the hook returns a block response and Codex continues the next turn with an automatically generated follow-up.
 
-No Codex automations needed. The loop is driven by Codex's Stop hook.
+By default, each new run should live under `./.autopilot/<slug>_<timestamp>/plan.md`. When `CODEX_THREAD_ID` is available, `autopilot` also writes a thread-scoped pointer at `./.autopilot/threads/<thread-key>.current` and keeps `.autopilot/current` only as a global fallback. The hook resolves plans in this order:
+
+1. `AUTOPILOT_PLAN_PATH`
+2. `./.autopilot/threads/<thread-key>.current`
+3. `./.autopilot/current`
+4. the most recent `./.autopilot/*/plan.md`
+5. legacy fallback `./plan.md`
+6. legacy fallback `./.workloop/**/plan.md`
+
+The Stop hook is the primary loop, but `autopilot` may also create one Codex thread heartbeat automation as a backup wake-up path. Recommended behavior:
+
+1. Keep the Stop hook as the immediate continuation mechanism.
+2. Create or update one ACTIVE heartbeat automation on the current thread when execution starts or resumes.
+3. Use a short interval such as every 10 minutes so the same thread wakes back up if the hook path stalls.
+4. Delete that heartbeat automation when the run finishes, is paused, or records `BLOCKER: true`.
+
+Do not use cron automations for `autopilot`; the backup should stay in the same thread.
 
 For readability on Codex desktop, plan review should be its own stopping point. Show the full plan, ask for the numbered choice, then end the turn immediately. After the plan is approved and saved, execution should begin only on the next explicit `진행` / `continue` message so the review content stays expanded long enough for the user to read it.
 

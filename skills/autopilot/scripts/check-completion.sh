@@ -2,11 +2,14 @@
 # autopilot Stop-hook guard.
 #
 # When the agent tries to stop, this script:
-#   1. Locates plan.md (env AUTOPILOT_PLAN_PATH, or common locations).
+#   1. Resolves the active plan from AUTOPILOT_PLAN_PATH,
+#      ./.autopilot/threads/<thread-key>.current, ./.autopilot/current,
+#      or compatibility fallbacks.
 #   2. Counts unchecked items in ## Done When and ## Todos.
 #   3. If any unchecked AND no BLOCKER marker → emit `decision: block` so the
 #      agent is forced to continue on the next turn.
-#   4. If everything checked → allow the stop, rename plan.md → plan.done.md.
+#   4. If everything checked → allow the stop, rename plan.md → plan.done.md,
+#      and clear the current pointer if it still points at that run.
 #   5. If a BLOCKER marker is present → allow the stop (user intervention needed).
 #
 # The hook communicates via JSON on stdout. Empty output means "allow stop".
@@ -16,10 +19,143 @@
 
 set -euo pipefail
 
-# ---------- locate plan.md ----------
+project_root() {
+  if [ -n "${CODEX_PROJECT_DIR:-}" ]; then
+    printf '%s' "$CODEX_PROJECT_DIR"
+    return 0
+  fi
+  printf '%s' "$PWD"
+}
+
+current_pointer_path() {
+  printf '%s/.autopilot/current' "$(project_root)"
+}
+
+workspace_root() {
+  printf '%s/.autopilot' "$(project_root)"
+}
+
+pointer_token() {
+  local raw="${1:-}"
+  if [ -z "$raw" ]; then
+    return 1
+  fi
+
+  raw="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
+  raw="$(printf '%s' "$raw" | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-+/-/g')"
+  if [ -z "$raw" ]; then
+    return 1
+  fi
+
+  printf '%s' "$raw"
+}
+
+thread_key() {
+  local candidate
+
+  candidate="$(pointer_token "${AUTOPILOT_THREAD_KEY:-}" || true)"
+  if [ -n "$candidate" ]; then
+    printf '%s' "$candidate"
+    return 0
+  fi
+
+  candidate="$(pointer_token "${CODEX_THREAD_ID:-}" || true)"
+  if [ -n "$candidate" ]; then
+    printf '%s' "$candidate"
+    return 0
+  fi
+
+  return 1
+}
+
+thread_pointer_path() {
+  local key
+  key="$(thread_key || true)"
+  if [ -z "$key" ]; then
+    return 1
+  fi
+
+  printf '%s/threads/%s.current' "$(workspace_root)" "$key"
+}
+
+resolve_pointer_file() {
+  local pointer="$1"
+  local recorded
+
+  if [ ! -f "$pointer" ]; then
+    return 1
+  fi
+
+  recorded="$(tr -d '\r' < "$pointer" | head -n 1)"
+  if [ -z "$recorded" ]; then
+    return 1
+  fi
+
+  if [ -f "$recorded" ]; then
+    printf '%s' "$recorded"
+    return 0
+  fi
+
+  if [ -d "$recorded" ] && [ -f "$recorded/plan.md" ]; then
+    printf '%s' "$recorded/plan.md"
+    return 0
+  fi
+
+  return 1
+}
+
+resolve_thread_pointer() {
+  local pointer
+  pointer="$(thread_pointer_path || true)"
+  if [ -z "$pointer" ]; then
+    return 1
+  fi
+
+  resolve_pointer_file "$pointer"
+}
+
+resolve_current_pointer() {
+  local pointer
+  pointer="$(current_pointer_path)"
+  resolve_pointer_file "$pointer"
+}
+
+latest_autopilot_plan() {
+  local root latest
+  root="$(workspace_root)"
+  latest=$(ls -t "$root"/*/plan.md 2>/dev/null | head -n 1 || true)
+  if [ -n "$latest" ]; then
+    printf '%s' "$latest"
+    return 0
+  fi
+
+  return 1
+}
+
 find_plan() {
   if [ -n "${AUTOPILOT_PLAN_PATH:-}" ] && [ -f "$AUTOPILOT_PLAN_PATH" ]; then
     printf '%s' "$AUTOPILOT_PLAN_PATH"
+    return 0
+  fi
+
+  local thread_plan
+  thread_plan="$(resolve_thread_pointer || true)"
+  if [ -n "$thread_plan" ]; then
+    printf '%s' "$thread_plan"
+    return 0
+  fi
+
+  local current
+  current="$(resolve_current_pointer || true)"
+  if [ -n "$current" ]; then
+    printf '%s' "$current"
+    return 0
+  fi
+
+  local latest_autopilot
+  latest_autopilot="$(latest_autopilot_plan || true)"
+  if [ -n "$latest_autopilot" ]; then
+    printf '%s' "$latest_autopilot"
     return 0
   fi
 
@@ -43,6 +179,40 @@ find_plan() {
   fi
 
   return 1
+}
+
+clear_pointer_if_plan() {
+  local pointer="$1"
+  local plan_file="$2"
+  local plan_dir recorded
+
+  if [ ! -f "$pointer" ]; then
+    return 0
+  fi
+
+  recorded="$(tr -d '\r' < "$pointer" | head -n 1)"
+  plan_dir="$(dirname "$plan_file")"
+
+  if [ "$recorded" = "$plan_file" ] || [ "$recorded" = "$plan_dir" ]; then
+    rm -f "$pointer"
+  fi
+}
+
+clear_thread_pointer_if_plan() {
+  local plan_file="$1"
+  local pointer
+
+  pointer="$(thread_pointer_path || true)"
+  if [ -z "$pointer" ]; then
+    return 0
+  fi
+
+  clear_pointer_if_plan "$pointer" "$plan_file"
+}
+
+clear_current_pointer_if_plan() {
+  local plan_file="$1"
+  clear_pointer_if_plan "$(current_pointer_path)" "$plan_file"
 }
 
 # ---------- emit a block decision ----------
@@ -96,6 +266,8 @@ if [ "${unchecked}" -eq 0 ]; then
   if [ ! -f "$done_file" ]; then
     mv "$plan_file" "$done_file" 2>/dev/null || true
   fi
+  clear_thread_pointer_if_plan "$plan_file"
+  clear_current_pointer_if_plan "$plan_file"
   allow_stop
 fi
 

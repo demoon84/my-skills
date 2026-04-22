@@ -6,7 +6,7 @@ The Node installer scans `skills/*`, links each skill into Codex's skill directo
 
 ## Included skills
 
-- `autopilot` (Codex only): talks through a task into `plan.md` (goal, scope, done-when, detailed todos), then uses a platform-specific `Stop` hook (`scripts/check-completion.sh` on macOS/Linux, `scripts/check-completion.ps1` on Windows) to re-engage the agent every time it tries to stop while unchecked items remain. Single skill, two modes (Plan / Autopilot).
+- `autopilot` (Codex only): talks through a task into `.autopilot/<slug>_<timestamp>/plan.md` (goal, scope, done-when, detailed todos), then uses a platform-specific `Stop` hook (`scripts/check-completion.sh` on macOS/Linux, `scripts/check-completion.ps1` on Windows) plus one Codex thread heartbeat backup to re-engage the agent while unchecked items remain. Single skill, two modes (Plan / Autopilot).
 - `webp`: wraps `demoon84/webp-maker` to produce static or animated WebP assets.
 
 ## Quick start
@@ -30,10 +30,12 @@ Equivalent npm scripts are declared in `package.json` (`npm run list`, `npm run 
 
 ## Using `autopilot`
 
-`autopilot` is the Codex-only planning + execution skill in this repo. It replaces the earlier `planwork` / `work-loop` pair by collapsing them into one skill plus a Stop hook.
+`autopilot` is the Codex-only planning + execution skill in this repo. It replaces the earlier `planwork` / `work-loop` pair by collapsing them into one skill plus a Stop hook and one Codex thread heartbeat backup.
 
-- **Plan mode** — conversation → `plan.md` at the repo root (or `.workloop/work_<ts>_<slug>/plan.md` for isolation).
-- **Autopilot mode** — whenever the agent tries to end a turn, the installed `check-completion` hook script reads `plan.md`; if any item in `## Done When` or `## Todos` is still `[ ]`, it emits `{"decision": "block"}` so the agent is forced to continue. When everything is `[x]`, the hook renames `plan.md` → `plan.done.md` and allows the stop.
+- **Plan mode** — conversation → `.autopilot/<slug>_<timestamp>/plan.md`.
+- **Autopilot mode** — whenever the agent tries to end a turn, the installed `check-completion` hook script follows `AUTOPILOT_PLAN_PATH` first when explicitly set, otherwise the thread-scoped pointer under `.autopilot/threads/<thread-key>.current`, then `.autopilot/current`, to the active run's `plan.md`; if any item in `## Done When` or `## Todos` is still `[ ]`, it emits `{"decision": "block"}` so the agent is forced to continue. When execution starts, `autopilot` should also create or update one ACTIVE Codex thread heartbeat automation as a backup wake-up path. When everything is `[x]`, the hook renames that run's `plan.md` → `plan.done.md`, allows the stop, and the backup heartbeat should be deleted or paused.
+
+Each new run creates its own folder under `./.autopilot/`, for example `.autopilot/login-copy-update_20260422_101530/plan.md`. When `CODEX_THREAD_ID` is available, `autopilot` also writes `.autopilot/threads/<thread-key>.current` for that thread and keeps `.autopilot/current` only as a global fallback. That makes concurrent runs in different Codex threads resolve their own plans safely.
 
 For readability on Codex desktop, plan review should be a dedicated stopping point: show the full plan, ask for the numbered choice, then end the turn immediately. After the user approves and the plan is saved, execution should begin only on the next explicit `진행` / `continue` message so the review content does not collapse before they read it.
 
@@ -42,15 +44,15 @@ Example prompts:
 ```text
 $autopilot: 로그인 에러 메시지 개선. 계획부터 잡자.   # Plan mode
 $autopilot: 진행해                                       # Autopilot loop until done
-$autopilot: status                                       # Report progress from plan.md
-$autopilot: stop                                         # Disable the hook, keep plan.md
+$autopilot: status                                       # Report progress from the active .autopilot run
+$autopilot: stop                                         # Disable the hook, keep the active run folder
 ```
 
 See [skills/autopilot/SKILL.md](skills/autopilot/SKILL.md) for the full behavior spec, `plan.md` template, and guardrails. On Windows, the installer writes a PowerShell hook command; on macOS/Linux, it writes the shell-script command.
 
 ## Optional `Model Strategy`
 
-`plan.md` has an optional `## Model Strategy` section for recording which model fits which subtask. It is planning metadata only; `autopilot` does not turn it into an automatic routing harness.
+Each run's `plan.md` has an optional `## Model Strategy` section for recording which model fits which subtask. It is planning metadata only; `autopilot` does not turn it into an automatic routing harness.
 
 ```markdown
 ## Model Strategy
